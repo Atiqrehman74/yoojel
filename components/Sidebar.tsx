@@ -56,10 +56,11 @@ export default function Sidebar({
       {/* top: logo + collapse */}
       <div className="flex items-center justify-between px-3 py-3">
         <div className="flex items-center gap-2 px-1">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
-            Y
-          </div>
-          <span className="text-sm font-semibold">Yoojel</span>
+          <img
+            src="/yoojel-logo-color.png"
+            alt="Yoojel"
+            className="h-7 w-auto object-contain"
+          />
         </div>
         <button
           onClick={onToggle}

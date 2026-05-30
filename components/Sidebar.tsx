@@ -59,7 +59,8 @@ export default function Sidebar({
           <img
             src="/yoojel-logo-color.png"
             alt="Yoojel"
-            className="h-7 w-auto object-contain"
+            className="w-auto object-contain"
+            style={{ height: '34px' }}
           />
         </div>
         <button

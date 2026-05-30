@@ -48,8 +48,8 @@ export default function MessageList({ messages, streaming }: Props) {
               </div>
             ) : (
               <div className="flex w-full gap-4">
-                <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
-                  Y
+                <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center">
+                  <img src="/yoojel-logo-color.png" alt="Yoojel" className="h-7 w-auto object-contain" />
                 </div>
                 <div className="min-w-0 flex-1 pt-0.5">
                   {m.content ? (

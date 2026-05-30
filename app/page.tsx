@@ -401,6 +401,19 @@ export default function Home() {
             onToggleWebSearch={() => setWebSearch((v) => !v)}
           />
         )}
+
+        {/* Footer */}
+        <div className="shrink-0 py-2 text-center text-[11px] text-gray-600 select-none">
+          Powered by 2026 —{" "}
+          <a
+            href="https://www.io-bm.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-500 transition-colors hover:text-gray-200 hover:underline"
+          >
+            IoBM
+          </a>
+        </div>
       </main>
     </div>
   );

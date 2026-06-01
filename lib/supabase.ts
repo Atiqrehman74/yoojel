@@ -27,7 +27,8 @@ export const supabaseConfigured = (() => {
   }
 })()
 
-export function createClient() {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createClient(): any {
   if (!supabaseConfigured) return createSafeStub()
   return createBrowserClient(rawUrl, rawAnon)
 }

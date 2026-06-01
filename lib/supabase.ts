@@ -12,12 +12,44 @@ export type Profile = {
   created_at: string
 }
 
-const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  || 'https://placeholder.supabase.co'
-const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder'
+const rawUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? ''
+const rawAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+
+// Valid only if it's a proper https URL (not empty/placeholder/malformed)
+export const supabaseConfigured = (() => {
+  try {
+    if (!rawUrl) return false
+    const parsed = new URL(rawUrl)
+    return (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
+           !rawUrl.includes('placeholder')
+  } catch {
+    return false
+  }
+})()
 
 export function createClient() {
-  return createBrowserClient(SUPABASE_URL, SUPABASE_ANON)
+  if (!supabaseConfigured) return createSafeStub()
+  return createBrowserClient(rawUrl, rawAnon)
 }
 
-export const supabaseConfigured =
-  !!process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co'
+// Safe stub used during prerender / when Supabase is not configured.
+// Prevents build errors — all methods return empty/null safely.
+function createSafeStub() {
+  return {
+    auth: {
+      getUser:              async () => ({ data: { user: null }, error: null }),
+      signInWithPassword:   async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      signUp:               async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      signOut:              async () => ({ error: null }),
+      signInWithOAuth:      async () => ({ data: null, error: null }),
+      onAuthStateChange:    () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({ data: null, error: null }),
+        }),
+      }),
+    }),
+  } as any
+}

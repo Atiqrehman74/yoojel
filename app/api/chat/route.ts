@@ -3,9 +3,8 @@ import { NextRequest } from "next/server";
 import { DEFAULT_MODEL, isValidModel } from "@/lib/models";
 import type { ChatRequest } from "@/lib/types";
 
-// Run on the Edge-friendly Node runtime; streaming works on Vercel.
 export const runtime = "nodejs";
-export const maxDuration = 60; // seconds (Vercel function timeout)
+export const maxDuration = 60;
 
 const SYSTEM_PROMPT = `You are Yoojel, a helpful, friendly AI assistant for yoojel.com.
 You can write and edit text, answer questions, analyze images the user uploads,
@@ -36,7 +35,6 @@ export async function POST(req: NextRequest) {
   const model = isValidModel(body.model) ? body.model : DEFAULT_MODEL;
   const useWebSearch = Boolean(body.webSearch);
 
-  // Build Anthropic-format messages (supports text + images).
   const messages: Anthropic.MessageParam[] = (body.messages || []).map((m) => {
     if (m.role === "user" && m.attachments && m.attachments.length > 0) {
       const blocks: Anthropic.ContentBlockParam[] = m.attachments.map((a) => ({
@@ -57,14 +55,11 @@ export async function POST(req: NextRequest) {
     return { role: m.role, content: m.content };
   });
 
-  // Optional server-side web search tool (Claude runs it for you).
-  // Cast to any: this is a server-managed tool and has no input_schema.
   const tools = useWebSearch
     ? ([{ type: "web_search_20250305", name: "web_search", max_uses: 5 }] as any)
     : undefined;
 
   const anthropic = new Anthropic({ apiKey });
-
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -81,27 +76,35 @@ export async function POST(req: NextRequest) {
           ...(tools ? { tools } : {}),
         });
 
-        const sources: { title: string; url: string }[] = [];
-
         claudeStream.on("text", (delta) => {
           send({ type: "text", text: delta });
         });
 
-        // Capture web-search citations as they arrive.
-        claudeStream.on("contentBlock", (block: any) => {
-          if (block?.type === "web_search_tool_result" && Array.isArray(block.content)) {
-            for (const r of block.content) {
+        // Wait for the full message so we can reliably extract all search results
+        const finalMsg = await claudeStream.finalMessage();
+
+        // Extract sources from all web_search_tool_result blocks in the response
+        const sources: { title: string; url: string }[] = [];
+        for (const block of finalMsg.content) {
+          const b = block as any;
+          if (b.type === "web_search_tool_result" && Array.isArray(b.content)) {
+            for (const r of b.content) {
               if (r?.url) {
                 sources.push({ title: r.title || r.url, url: r.url });
               }
             }
           }
-        });
-
-        await claudeStream.finalMessage();
+          // Also check server_tool_use / tool_result variants
+          if (b.type === "tool_result" && Array.isArray(b.content)) {
+            for (const r of b.content) {
+              if (r?.type === "web_search_result" && r?.url) {
+                sources.push({ title: r.title || r.url, url: r.url });
+              }
+            }
+          }
+        }
 
         if (sources.length > 0) {
-          // de-duplicate by url
           const seen = new Set<string>();
           const unique = sources.filter((s) =>
             seen.has(s.url) ? false : (seen.add(s.url), true)

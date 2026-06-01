@@ -2,12 +2,29 @@
 
 import { useEffect, useRef } from "react";
 import Markdown from "./Markdown";
-import { ExternalLink } from "lucide-react";
+import { Globe, ExternalLink } from "lucide-react";
 import type { ChatMessage } from "@/lib/types";
 
 interface Props {
   messages: ChatMessage[];
   streaming: boolean;
+}
+
+function getDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function getFaviconUrl(url: string): string {
+  try {
+    const origin = new URL(url).origin;
+    return `https://www.google.com/s2/favicons?domain=${origin}&sz=32`;
+  } catch {
+    return "";
+  }
 }
 
 export default function MessageList({ messages, streaming }: Props) {
@@ -65,23 +82,64 @@ export default function MessageList({ messages, streaming }: Props) {
                     </div>
                   ) : null}
 
-                  {/* web sources */}
+                  {/* Web search sources */}
                   {m.sources && m.sources.length > 0 && (
-                    <div className="mt-4 border-t border-white/10 pt-3">
-                      <p className="mb-2 text-xs font-medium text-gray-400">Sources</p>
-                      <div className="flex flex-col gap-1.5">
-                        {m.sources.map((s, i) => (
-                          <a
-                            key={i}
-                            href={s.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-400"
-                          >
-                            <ExternalLink size={12} className="flex-shrink-0" />
-                            <span className="truncate">{s.title}</span>
-                          </a>
-                        ))}
+                    <div className="mt-4">
+                      {/* Header */}
+                      <div className="mb-2.5 flex items-center gap-1.5 text-xs font-medium text-gray-400">
+                        <Globe size={13} />
+                        <span>Sources</span>
+                        <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-gray-400">
+                          {m.sources.length}
+                        </span>
+                      </div>
+
+                      {/* Source cards */}
+                      <div className="flex flex-col gap-2">
+                        {m.sources.map((s, i) => {
+                          const domain = getDomain(s.url);
+                          const favicon = getFaviconUrl(s.url);
+                          return (
+                            <a
+                              key={i}
+                              href={s.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group flex items-start gap-3 rounded-xl border border-white/8 bg-white/4 px-3 py-2.5 transition-colors hover:border-white/15 hover:bg-white/8"
+                            >
+                              {/* Number */}
+                              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-semibold text-gray-400">
+                                {i + 1}
+                              </span>
+
+                              {/* Favicon + text */}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  {favicon && (
+                                    <img
+                                      src={favicon}
+                                      alt=""
+                                      className="h-3.5 w-3.5 flex-shrink-0 rounded-sm"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                                      }}
+                                    />
+                                  )}
+                                  <span className="text-[11px] text-gray-500 truncate">{domain}</span>
+                                </div>
+                                <p className="text-sm leading-snug text-gray-200 line-clamp-2 group-hover:text-white">
+                                  {s.title || domain}
+                                </p>
+                              </div>
+
+                              {/* Arrow */}
+                              <ExternalLink
+                                size={13}
+                                className="mt-1 flex-shrink-0 text-gray-600 group-hover:text-gray-400"
+                              />
+                            </a>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

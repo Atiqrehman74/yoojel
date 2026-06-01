@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+const PRICE_ID = process.env.STRIPE_PRICE_ID || 'price_1TddAhJG9rRK9s1lnHnMctNv'
+
 export async function POST(req: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-05-27.dahlia' })
   const supabase = createClient()
@@ -15,15 +17,7 @@ export async function POST(req: NextRequest) {
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
-    line_items: [{
-      price_data: {
-        currency: 'usd',
-        product_data: { name: 'Yoojel Pro', description: 'Unlimited AI chats, web search, image uploads' },
-        unit_amount: 1900,
-        recurring: { interval: 'month' },
-      },
-      quantity: 1,
-    }],
+    line_items: [{ price: PRICE_ID, quantity: 1 }],
     customer_email: user.email,
     metadata: { user_id: user.id },
     success_url: `${origin}/?success=true`,

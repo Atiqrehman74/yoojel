@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase";
+import { createClient, supabaseConfigured } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
@@ -17,27 +17,40 @@ export default function AuthPage() {
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
+    if (!supabaseConfigured) { setError("Database not configured. Add Supabase env vars to Vercel and redeploy."); return; }
     setError(""); setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) { setError(error.message); return; }
-    router.push("/");
-    router.refresh();
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { setError(error.message); return; }
+      router.push("/");
+      router.refresh();
+    } catch {
+      setError("Cannot connect to database. Check Vercel environment variables.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
+    if (!supabaseConfigured) { setError("Database not configured. Add Supabase env vars to Vercel and redeploy."); return; }
     setError(""); setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name: name } },
-    });
-    setLoading(false);
-    if (error) { setError(error.message); return; }
-    setSuccess("Account created! Check your email to confirm, then sign in.");
+    try {
+      const { error } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { full_name: name } },
+      });
+      if (error) { setError(error.message); return; }
+      setSuccess("Account created! Check your email to confirm, then sign in.");
+    } catch {
+      setError("Cannot connect to database. Check Vercel environment variables.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleGoogle() {
+    if (!supabaseConfigured) { setError("Database not configured. Add Supabase env vars to Vercel and redeploy."); return; }
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${location.origin}/api/auth/callback` },

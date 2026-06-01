@@ -37,10 +37,13 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    supabase.auth.getUser().then((res: any) => {
+      const user = res?.data?.user;
       if (!user) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       supabase.from('profiles').select('*').eq('id', user.id).single()
-        .then(({ data }) => { if (data) setProfile(data as Profile); });
+        .then((r: any) => { if (r?.data) setProfile(r.data as Profile); });
     });
   }, []);
 

@@ -8,6 +8,8 @@ import {
   ImageIcon,
   PenLine,
   Globe,
+  X,
+  Crown,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import MessageList from "@/components/MessageList";
@@ -20,6 +22,9 @@ import type {
 } from "@/lib/types";
 
 const STORAGE_KEY = "yoojel-conversations";
+const SEARCH_COUNT_KEY = "yoojel-search-count";
+const SEARCH_LIMIT = 5;
+
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 export default function Home() {
@@ -31,6 +36,9 @@ export default function Home() {
   const [webSearch, setWebSearch] = useState(false);
   const [imageMode, setImageMode] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [searchCount, setSearchCount] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const active = conversations.find((c) => c.id === activeId) || null;
@@ -38,14 +46,21 @@ export default function Home() {
 
   // Open sidebar by default on desktop only
   useEffect(() => {
-    const init = () => setSidebarOpen(window.innerWidth >= 768);
-    init();
-    window.addEventListener("resize", () => {
+    setSidebarOpen(window.innerWidth >= 768);
+    const handleResize = () => {
       if (window.innerWidth >= 768) setSidebarOpen(true);
-    });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ---- load / persist ----
+  // Load search count from localStorage
+  useEffect(() => {
+    const count = parseInt(localStorage.getItem(SEARCH_COUNT_KEY) || "0", 10);
+    setSearchCount(count);
+  }, []);
+
+  // ---- load / persist conversations ----
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -67,12 +82,28 @@ export default function Home() {
     if (window.innerWidth < 768) setSidebarOpen(false);
   };
 
-  // ---- helpers ----
-  const patchActive = (fn: (c: Conversation) => Conversation) =>
-    setConversations((prev) =>
-      prev.map((c) => (c.id === activeId ? fn(c) : c))
-    );
+  // ---- web search toggle with limit enforcement ----
+  const handleToggleWebSearch = () => {
+    if (!webSearch && searchCount >= SEARCH_LIMIT) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setWebSearch((v) => !v);
+    setImageMode(false);
+  };
 
+  const handleUpgrade = async () => {
+    setUpgrading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  // ---- helpers ----
   const newChat = () => {
     setActiveId(null);
     setImageMode(false);
@@ -157,6 +188,17 @@ export default function Home() {
   // ---- chat (streaming) path ----
   const sendMessage = async (text: string, attachments: Attachment[]) => {
     if (imageMode) return generateImage(text);
+
+    // Increment search count if web search is active
+    if (webSearch) {
+      const newCount = searchCount + 1;
+      setSearchCount(newCount);
+      localStorage.setItem(SEARCH_COUNT_KEY, String(newCount));
+      // Disable web search after hitting the limit
+      if (newCount >= SEARCH_LIMIT) {
+        setWebSearch(false);
+      }
+    }
 
     const convoId = ensureConversation(text);
     const userMsg: ChatMessage = {
@@ -282,15 +324,53 @@ export default function Home() {
   };
 
   const currentModel = MODELS.find((m) => m.id === model) || MODELS[0];
+  const searchesLeft = Math.max(0, SEARCH_LIMIT - searchCount);
 
   return (
     <div className="flex h-dvh w-screen overflow-hidden bg-main">
-      {/* Mobile backdrop — closes sidebar when tapped */}
+      {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/60 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
+      )}
+
+      {/* Upgrade modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setShowUpgradeModal(false)} />
+          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#2a2a2a] p-6 shadow-2xl">
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-200"
+            >
+              <X size={18} />
+            </button>
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-400/10">
+              <Crown size={24} className="text-amber-400" />
+            </div>
+            <h2 className="mb-2 text-lg font-semibold text-gray-100">
+              Search limit reached
+            </h2>
+            <p className="mb-5 text-sm text-gray-400">
+              Free users get <span className="font-medium text-gray-200">{SEARCH_LIMIT} web searches</span>. Upgrade to Pro for unlimited web searches, priority responses, and more.
+            </p>
+            <button
+              onClick={handleUpgrade}
+              disabled={upgrading}
+              className="mb-2 w-full rounded-xl bg-amber-400 py-2.5 text-sm font-bold text-black hover:bg-amber-300 disabled:opacity-60"
+            >
+              {upgrading ? "Redirecting to checkout…" : "Upgrade to Pro"}
+            </button>
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="w-full rounded-xl py-2 text-sm text-gray-400 hover:text-gray-200"
+            >
+              Maybe later
+            </button>
+          </div>
+        </div>
       )}
 
       <Sidebar
@@ -377,7 +457,8 @@ export default function Home() {
                   onStop={stop}
                   streaming={streaming}
                   webSearch={webSearch}
-                  onToggleWebSearch={() => setWebSearch((v) => !v)}
+                  onToggleWebSearch={handleToggleWebSearch}
+                  searchesLeft={searchesLeft}
                 />
               </div>
               <div className="mt-2 flex flex-wrap justify-center gap-2 md:gap-3">
@@ -403,7 +484,7 @@ export default function Home() {
                   label="Look something up"
                   active={webSearch}
                   onClick={() => {
-                    setWebSearch((v) => !v);
+                    handleToggleWebSearch();
                     setImageMode(false);
                   }}
                 />
@@ -421,7 +502,8 @@ export default function Home() {
             onStop={stop}
             streaming={streaming}
             webSearch={webSearch}
-            onToggleWebSearch={() => setWebSearch((v) => !v)}
+            onToggleWebSearch={handleToggleWebSearch}
+            searchesLeft={searchesLeft}
           />
         )}
 

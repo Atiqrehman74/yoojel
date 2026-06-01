@@ -10,6 +10,7 @@ interface Props {
   streaming: boolean;
   webSearch: boolean;
   onToggleWebSearch: () => void;
+  searchesLeft: number;
 }
 
 export default function Composer({
@@ -18,6 +19,7 @@ export default function Composer({
   streaming,
   webSearch,
   onToggleWebSearch,
+  searchesLeft,
 }: Props) {
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -60,6 +62,8 @@ export default function Composer({
     setAttachments([]);
     if (taRef.current) taRef.current.style.height = "auto";
   };
+
+  const searchLimitReached = searchesLeft === 0;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-3 pb-safe-4">
@@ -114,17 +118,34 @@ export default function Composer({
             >
               <Plus size={20} />
             </button>
+
+            {/* Web search toggle with search count badge */}
             <button
               onClick={onToggleWebSearch}
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm md:px-3 ${
+              className={`relative flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm md:px-3 ${
                 webSearch
                   ? "bg-brand/20 text-brand"
+                  : searchLimitReached
+                  ? "text-gray-600 cursor-pointer"
                   : "text-gray-300 hover:bg-white/10"
               }`}
+              title={searchLimitReached ? "Upgrade to Pro for more searches" : undefined}
             >
               <Globe size={17} />
               <span className="hidden sm:inline">Search</span>
+              {/* Remaining searches badge */}
+              {!webSearch && !searchLimitReached && searchesLeft <= 3 && (
+                <span className="ml-0.5 rounded-full bg-gray-600 px-1.5 py-0.5 text-[10px] font-medium text-gray-300">
+                  {searchesLeft}
+                </span>
+              )}
+              {searchLimitReached && (
+                <span className="ml-0.5 rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                  PRO
+                </span>
+              )}
             </button>
+
             <input
               ref={fileRef}
               type="file"

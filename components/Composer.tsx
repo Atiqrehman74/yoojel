@@ -28,7 +28,7 @@ export default function Composer({
     const ta = taRef.current;
     if (!ta) return;
     ta.style.height = "auto";
-    ta.style.height = Math.min(ta.scrollHeight, 220) + "px";
+    ta.style.height = Math.min(ta.scrollHeight, 180) + "px";
   };
 
   const handleFiles = async (files: FileList | null) => {
@@ -62,8 +62,8 @@ export default function Composer({
   };
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-3 pb-4">
-      <div className="rounded-[26px] bg-composer p-2 shadow-lg">
+    <div className="mx-auto w-full max-w-3xl px-3 pb-safe-4">
+      <div className="rounded-[22px] bg-composer p-2 shadow-lg md:rounded-[26px]">
         {/* attachment previews */}
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-2 px-2 pb-2 pt-1">
@@ -72,7 +72,7 @@ export default function Composer({
                 <img
                   src={a.dataUrl}
                   alt="attachment"
-                  className="h-16 w-16 rounded-lg object-cover"
+                  className="h-14 w-14 rounded-lg object-cover md:h-16 md:w-16"
                 />
                 <button
                   onClick={() =>
@@ -102,7 +102,7 @@ export default function Composer({
           }}
           rows={1}
           placeholder="Ask anything"
-          className="max-h-[220px] w-full resize-none bg-transparent px-3 py-2 text-[15px] text-gray-100 placeholder-gray-500 outline-none"
+          className="max-h-[180px] w-full resize-none bg-transparent px-3 py-2 text-[15px] text-gray-100 placeholder-gray-500 outline-none"
         />
 
         <div className="flex items-center justify-between px-1 pt-1">
@@ -116,13 +116,14 @@ export default function Composer({
             </button>
             <button
               onClick={onToggleWebSearch}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm ${
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm md:px-3 ${
                 webSearch
                   ? "bg-brand/20 text-brand"
                   : "text-gray-300 hover:bg-white/10"
               }`}
             >
-              <Globe size={17} /> Search
+              <Globe size={17} />
+              <span className="hidden sm:inline">Search</span>
             </button>
             <input
               ref={fileRef}

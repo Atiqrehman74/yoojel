@@ -23,7 +23,7 @@ const STORAGE_KEY = "yoojel-conversations";
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 export default function Home() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [model, setModel] = useState(DEFAULT_MODEL);
@@ -35,6 +35,15 @@ export default function Home() {
 
   const active = conversations.find((c) => c.id === activeId) || null;
   const messages = active?.messages ?? [];
+
+  // Open sidebar by default on desktop only
+  useEffect(() => {
+    const init = () => setSidebarOpen(window.innerWidth >= 768);
+    init();
+    window.addEventListener("resize", () => {
+      if (window.innerWidth >= 768) setSidebarOpen(true);
+    });
+  }, []);
 
   // ---- load / persist ----
   useEffect(() => {
@@ -54,6 +63,10 @@ export default function Home() {
     } catch {}
   }, [conversations]);
 
+  const closeSidebarOnMobile = () => {
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  };
+
   // ---- helpers ----
   const patchActive = (fn: (c: Conversation) => Conversation) =>
     setConversations((prev) =>
@@ -63,6 +76,7 @@ export default function Home() {
   const newChat = () => {
     setActiveId(null);
     setImageMode(false);
+    closeSidebarOnMobile();
   };
 
   const deleteChat = (id: string) => {
@@ -159,7 +173,6 @@ export default function Home() {
       createdAt: Date.now(),
     };
 
-    // snapshot history for the API (before adding empty assistant msg)
     const baseConvo = conversations.find((c) => c.id === convoId);
     const history = [...(baseConvo?.messages ?? []), userMsg];
 
@@ -268,11 +281,18 @@ export default function Home() {
     setStreaming(false);
   };
 
-  const currentModel =
-    MODELS.find((m) => m.id === model) || MODELS[0];
+  const currentModel = MODELS.find((m) => m.id === model) || MODELS[0];
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-main">
+    <div className="flex h-dvh w-screen overflow-hidden bg-main">
+      {/* Mobile backdrop — closes sidebar when tapped */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/60 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       <Sidebar
         open={sidebarOpen}
         onToggle={() => setSidebarOpen((s) => !s)}
@@ -281,21 +301,24 @@ export default function Home() {
         onSelect={(id) => {
           setActiveId(id);
           setImageMode(false);
+          closeSidebarOnMobile();
         }}
         onNew={newChat}
         onDelete={deleteChat}
       />
 
-      <main className="relative flex h-full flex-1 flex-col">
+      <main className="relative flex h-full min-w-0 flex-1 flex-col">
         {/* header */}
-        <header className="flex items-center justify-between px-4 py-3">
-          <div className={sidebarOpen ? "" : "pl-12"}>
+        <header className="flex items-center justify-between px-3 py-3 md:px-4">
+          <div className={sidebarOpen ? "" : "pl-10 md:pl-12"}>
             <button
               onClick={() => setModelMenu((v) => !v)}
-              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-lg font-semibold text-gray-200 hover:bg-hover"
+              className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-base font-semibold text-gray-200 hover:bg-hover md:px-3 md:text-lg"
             >
-              {currentModel.label}
-              <ChevronDown size={18} className="text-gray-400" />
+              <span className="max-w-[140px] truncate md:max-w-none">
+                {currentModel.label}
+              </span>
+              <ChevronDown size={16} className="flex-shrink-0 text-gray-400" />
             </button>
             {modelMenu && (
               <>
@@ -303,7 +326,7 @@ export default function Home() {
                   className="fixed inset-0 z-10"
                   onClick={() => setModelMenu(false)}
                 />
-                <div className="absolute z-20 mt-1 w-80 rounded-2xl border border-white/10 bg-[#2a2a2a] p-1.5 shadow-2xl">
+                <div className="absolute z-20 mt-1 w-72 rounded-2xl border border-white/10 bg-[#2a2a2a] p-1.5 shadow-2xl md:w-80">
                   {MODELS.map((m) => (
                     <button
                       key={m.id}
@@ -314,7 +337,7 @@ export default function Home() {
                       className="flex w-full items-start justify-between gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/5"
                     >
                       <div className="flex gap-3">
-                        <Sparkles size={18} className="mt-0.5 text-gray-300" />
+                        <Sparkles size={18} className="mt-0.5 flex-shrink-0 text-gray-300" />
                         <div>
                           <div className="text-sm font-medium text-gray-100">
                             {m.label}
@@ -325,7 +348,7 @@ export default function Home() {
                         </div>
                       </div>
                       {m.id === model && (
-                        <Check size={16} className="mt-1 text-gray-200" />
+                        <Check size={16} className="mt-1 flex-shrink-0 text-gray-200" />
                       )}
                     </button>
                   ))}
@@ -335,7 +358,7 @@ export default function Home() {
           </div>
           <a
             href="https://yoojel.com"
-            className="rounded-full border border-white/15 px-4 py-1.5 text-sm text-gray-200 hover:bg-hover"
+            className="hidden rounded-full border border-white/15 px-4 py-1.5 text-sm text-gray-200 hover:bg-hover sm:block"
           >
             yoojel.com
           </a>
@@ -345,7 +368,7 @@ export default function Home() {
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-4">
-              <h1 className="mb-8 text-3xl font-semibold text-gray-100">
+              <h1 className="mb-6 text-2xl font-semibold text-gray-100 md:mb-8 md:text-3xl">
                 {imageMode ? "Describe the image to create" : "What can I help with?"}
               </h1>
               <div className="w-full max-w-3xl">
@@ -357,10 +380,10 @@ export default function Home() {
                   onToggleWebSearch={() => setWebSearch((v) => !v)}
                 />
               </div>
-              <div className="mt-2 flex flex-wrap justify-center gap-3">
+              <div className="mt-2 flex flex-wrap justify-center gap-2 md:gap-3">
                 <QuickAction
-                  icon={<ImageIcon size={18} />}
-                  label="Create an image"
+                  icon={<ImageIcon size={16} />}
+                  label="Create image"
                   active={imageMode}
                   onClick={() => {
                     setImageMode((v) => !v);
@@ -368,7 +391,7 @@ export default function Home() {
                   }}
                 />
                 <QuickAction
-                  icon={<PenLine size={18} />}
+                  icon={<PenLine size={16} />}
                   label="Write or edit"
                   onClick={() => {
                     setImageMode(false);
@@ -376,7 +399,7 @@ export default function Home() {
                   }}
                 />
                 <QuickAction
-                  icon={<Globe size={18} />}
+                  icon={<Globe size={16} />}
                   label="Look something up"
                   active={webSearch}
                   onClick={() => {
@@ -403,7 +426,7 @@ export default function Home() {
         )}
 
         {/* Footer */}
-        <div className="shrink-0 py-2 text-center text-[11px] text-gray-600 select-none">
+        <div className="shrink-0 pb-safe py-2 text-center text-[11px] text-gray-600 select-none">
           Powered by 2026 —{" "}
           <a
             href="https://www.io-bm.com/"
@@ -433,7 +456,7 @@ function QuickAction({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm ${
+      className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm md:px-4 md:py-2.5 ${
         active
           ? "border-brand bg-brand/10 text-brand"
           : "border-white/15 text-gray-200 hover:bg-hover"

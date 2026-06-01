@@ -7,10 +7,26 @@ body {
   height: 100%;
   background: #212121;
   color: #ececec;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Hide scrollbar on mobile for cleaner look */
+@media (max-width: 767px) {
+  ::-webkit-scrollbar { display: none; }
+  * { scrollbar-width: none; }
+}
+
+/* iOS safe-area utility classes */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pb-safe-4 {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
 /* Thin, subtle scrollbars like ChatGPT */

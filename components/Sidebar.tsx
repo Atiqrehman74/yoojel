@@ -38,12 +38,12 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabase.auth.getUser().then((res: any) => {
-      const user = res?.data?.user;
-      if (!user) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      supabase.from('profiles').select('*').eq('id', user.id).single()
-        .then((r: any) => { if (r?.data) setProfile(r.data as Profile); });
+    supabase.auth.getSession().then((res: any) => {
+      const token = res?.data?.session?.access_token;
+      if (!token) return;
+      fetch('/api/profile', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(({ profile }) => { if (profile) setProfile(profile as Profile); });
     });
   }, []);
 

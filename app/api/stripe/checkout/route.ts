@@ -32,10 +32,19 @@ export async function POST(req: NextRequest) {
     const stripe = new Stripe(stripeKey, { apiVersion: '2026-05-27.dahlia' as any })
     const origin = req.headers.get('origin') ?? 'https://yoojel.com'
 
+    // Use price_data to define the recurring price inline (avoids one-time vs recurring mismatch)
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [{ price: PRICE_ID, quantity: 1 }],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          unit_amount: 500, // $5.00
+          recurring: { interval: 'month' },
+          product_data: { name: 'Yoojel Pro', description: 'Unlimited chats, web search & more.' },
+        },
+        quantity: 1,
+      }],
       ...(userEmail ? { customer_email: userEmail } : {}),
       ...(userId ? { metadata: { user_id: userId } } : {}),
       success_url: `${origin}/?success=true`,

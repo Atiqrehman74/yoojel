@@ -85,8 +85,14 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      const { url } = await res.json();
-      if (url) window.location.href = url;
+      const json = await res.json();
+      if (json.url) {
+        window.location.href = json.url;
+      } else {
+        alert('Checkout error: ' + (json.error || 'No URL returned. Check Stripe key in Vercel.'));
+      }
+    } catch (e: any) {
+      alert('Checkout failed: ' + (e?.message || 'Unknown error'));
     } finally {
       setUpgrading(false);
     }

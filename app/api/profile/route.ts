@@ -1,43 +1,37 @@
-import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  if (!supabaseUrl || !supabaseAnon || !serviceKey) {
-    return NextResponse.json({ profile: null })
+  if (!supabaseUrl || !serviceKey) {
+    return NextResponse.json({ profile: null, debug: 'missing env' })
   }
 
-  // Read the session from cookies (browser sends them automatically)
-  const cookieStore = cookies()
-  const serverClient = createServerClient(supabaseUrl, supabaseAnon, {
-    cookies: {
-      getAll() { return cookieStore.getAll() },
-      setAll() {},
-    },
-  })
+  const authHeader = req.headers.get('authorization')
+  const token = authHeader?.replace('Bearer ', '')
+  if (!token) return NextResponse.json({ profile: null, debug: 'no token' })
 
-  const { data: { user } } = await serverClient.auth.getUser()
-  if (!user) return NextResponse.json({ profile: null })
-
-  // Use service role to bypass RLS
   const adminClient = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
   })
 
-  const { data: profile } = await adminClient
+  const { data: { user }, error: userError } = await adminClient.auth.getUser(token)
+  if (userError || !user) {
+    return NextResponse.json({ profile: null, debug: `auth error: ${userError?.message}` })
+  }
+
+  const { data: profile, error: profileError } = await adminClient
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
 
-  if (!profile) {
+  if (profileError || !profile) {
+    // Auto-create profile if missing
     const { data: newProfile } = await adminClient
       .from('profiles')
       .insert({

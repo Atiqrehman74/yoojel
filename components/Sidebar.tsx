@@ -38,16 +38,18 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
   const router = useRouter();
 
   useEffect(() => {
-    // Check client-side session first (works even if cookies aren't set)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabase.auth.getSession().then((res: any) => {
       const session = res?.data?.session;
-      if (session) setHasSession(true);
+      if (!session) return;
+      setHasSession(true);
+      fetch('/api/profile', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+        .then(r => r.json())
+        .then(({ profile }) => { if (profile) setProfile(profile as Profile); })
+        .catch(() => {});
     });
-    fetch('/api/profile')
-      .then(r => r.json())
-      .then(({ profile }) => { if (profile) setProfile(profile as Profile); })
-      .catch(() => {});
   }, []);
 
   const signOut = async () => {

@@ -31,12 +31,19 @@ const navItems = [
 
 export default function Sidebar({ open, onToggle, conversations, activeId, onSelect, onNew, onDelete }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [hasSession, setHasSession] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
+    // Check client-side session first (works even if cookies aren't set)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    supabase.auth.getSession().then((res: any) => {
+      const session = res?.data?.session;
+      if (session) setHasSession(true);
+    });
     fetch('/api/profile')
       .then(r => r.json())
       .then(({ profile }) => { if (profile) setProfile(profile as Profile); })
@@ -188,7 +195,7 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
               <div className="absolute bottom-14 left-3 right-3 z-20 rounded-xl border border-white/10 bg-[#2a2a2a] p-1 shadow-2xl">
-                {!profile && (
+                {!profile && !hasSession && (
                   <Link href="/auth" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-200 hover:bg-white/5">
                     Sign In / Register
                   </Link>
@@ -198,7 +205,7 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
                     <Crown size={15} className="text-amber-400" /> Manage Subscription
                   </button>
                 )}
-                {profile && (
+                {(profile || hasSession) && (
                   <button onClick={signOut} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-white/5">
                     <LogOut size={15} /> Sign Out
                   </button>

@@ -185,7 +185,7 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
               disabled={upgrading}
               className="w-full rounded-lg bg-amber-400 py-1.5 text-xs font-bold text-black hover:bg-amber-300 disabled:opacity-60"
             >
-              {upgrading ? 'Redirecting…' : 'Upgrade $19/mo'}
+              {upgrading ? 'Redirecting…' : 'Upgrade $5/mo'}
             </button>
           </div>
         )}

@@ -43,6 +43,24 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
       const session = res?.data?.session;
       if (!session) return;
       setHasSession(true);
+
+      // Show name/email immediately from JWT — no DB round-trip needed
+      const u = session.user;
+      if (u) {
+        setProfile({
+          id: u.id,
+          email: u.email ?? '',
+          full_name: u.user_metadata?.full_name ?? null,
+          plan: 'free',
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          message_count: 0,
+          is_admin: false,
+          created_at: u.created_at ?? '',
+        });
+      }
+
+      // Fetch full profile from DB (plan, is_admin, etc.)
       fetch('/api/profile', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })

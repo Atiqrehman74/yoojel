@@ -43,7 +43,8 @@ function createSafeStub() {
       signUp:               async () => ({ data: null, error: { message: 'Supabase not configured' } }),
       signOut:              async () => ({ error: null }),
       signInWithOAuth:      async () => ({ data: null, error: null }),
-      onAuthStateChange:    () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      onAuthStateChange:    (_event: unknown, _cb: unknown) => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      getSession:           async () => ({ data: { session: null }, error: null }),
     },
     from: () => ({
       select: () => ({

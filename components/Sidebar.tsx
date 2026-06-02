@@ -38,13 +38,15 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabase.auth.getSession().then((res: any) => {
-      const token = res?.data?.session?.access_token;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      const token = session?.access_token;
       if (!token) return;
       fetch('/api/profile', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
-        .then(({ profile }) => { if (profile) setProfile(profile as Profile); });
+        .then(({ profile }) => { if (profile) setProfile(profile as Profile); })
+        .catch(() => {});
     });
+    return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {

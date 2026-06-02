@@ -77,10 +77,19 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
 
   const upgrade = async () => {
     setUpgrading(true);
-    const res = await fetch('/api/stripe/checkout', { method: 'POST' });
-    const { url } = await res.json();
-    if (url) window.location.href = url;
-    setUpgrading(false);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase.auth as any).getSession();
+      const token = data?.session?.access_token;
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } finally {
+      setUpgrading(false);
+    }
   };
 
   const manageSubscription = async () => {

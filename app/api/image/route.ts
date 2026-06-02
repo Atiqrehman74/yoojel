@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     return new Response(
       JSON.stringify({
         error:
-          "Image generation is not configured. Add IMAGE_API_KEY in your environment to enable it. (Claude itself cannot create images.)",
+          "Image generation is a Pro feature. Subscribe to Yoojel Pro to unlock it.",
       }),
       { status: 501, headers: { "Content-Type": "application/json" } }
     );

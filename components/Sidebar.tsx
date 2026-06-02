@@ -37,16 +37,10 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
   const router = useRouter();
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      const token = session?.access_token;
-      if (!token) return;
-      fetch('/api/profile', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json())
-        .then(({ profile }) => { if (profile) setProfile(profile as Profile); })
-        .catch(() => {});
-    });
-    return () => subscription.unsubscribe();
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then(({ profile }) => { if (profile) setProfile(profile as Profile); })
+      .catch(() => {});
   }, []);
 
   const signOut = async () => {

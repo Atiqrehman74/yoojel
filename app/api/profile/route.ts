@@ -1,51 +1,56 @@
+import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 export const runtime = 'nodejs'
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  if (!supabaseUrl || !serviceKey) {
+  if (!supabaseUrl || !supabaseAnon || !serviceKey) {
     return NextResponse.json({ profile: null })
   }
 
-  // Get the user's JWT from the Authorization header
-  const authHeader = req.headers.get('authorization')
-  const token = authHeader?.replace('Bearer ', '')
-  if (!token) return NextResponse.json({ profile: null })
+  // Read the session from cookies (browser sends them automatically)
+  const cookieStore = cookies()
+  const serverClient = createServerClient(supabaseUrl, supabaseAnon, {
+    cookies: {
+      getAll() { return cookieStore.getAll() },
+      setAll() {},
+    },
+  })
 
-  // Verify the token and get the user
+  const { data: { user } } = await serverClient.auth.getUser()
+  if (!user) return NextResponse.json({ profile: null })
+
+  // Use service role to bypass RLS
   const adminClient = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
   })
 
-  const { data: { user }, error: userError } = await adminClient.auth.getUser(token)
-  if (userError || !user) return NextResponse.json({ profile: null })
-
-  // Fetch the profile using service role (bypasses RLS)
   const { data: profile } = await adminClient
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
 
-  // If no profile exists yet, auto-create it
   if (!profile) {
     const { data: newProfile } = await adminClient
       .from('profiles')
       .insert({
         id: user.id,
-        email: user.email,
-        full_name: user.user_metadata?.full_name ?? null,
+        email: user.email ?? '',
+        full_name: (user.user_metadata?.full_name as string) ?? null,
         plan: 'free',
         message_count: 0,
         is_admin: false,
       })
       .select()
       .single()
-    return NextResponse.json({ profile: newProfile })
+    return NextResponse.json({ profile: newProfile ?? null })
   }
 
   return NextResponse.json({ profile })

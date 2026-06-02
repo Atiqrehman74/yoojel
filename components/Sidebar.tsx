@@ -53,9 +53,8 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/auth');
-    router.refresh();
+    await supabase.auth.signOut().catch(() => {});
+    window.location.href = '/auth';
   };
 
   const upgrade = async () => {

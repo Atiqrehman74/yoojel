@@ -34,6 +34,9 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
   const [hasSession, setHasSession] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [toast, setToast] = useState("");
   const supabase = createClient();
   const router = useRouter();
 
@@ -69,6 +72,11 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
         .catch(() => {});
     });
   }, []);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2500);
+  };
 
   const signOut = async () => {
     await supabase.auth.signOut().catch(() => {});
@@ -153,11 +161,24 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
 
         {/* nav */}
         <nav className="mt-1 px-2">
-          {navItems.map(({ icon: Icon, label }) => (
-            <button key={label} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
-              <Icon size={18} /> {label}
-            </button>
-          ))}
+          <button
+            onClick={() => { setSearchOpen(v => !v); setSearchQuery(""); }}
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover ${searchOpen ? "bg-hover" : ""}`}
+          >
+            <Search size={18} /> Search chats
+          </button>
+          <button onClick={() => showToast("Library — coming soon")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
+            <Library size={18} /> Library
+          </button>
+          <button onClick={() => showToast("Projects — coming soon")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
+            <FolderClosed size={18} /> Projects
+          </button>
+          <button onClick={() => showToast("Apps — coming soon")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
+            <LayoutGrid size={18} /> Apps
+          </button>
+          <button onClick={() => showToast("More options — coming soon")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
+            <MoreHorizontal size={18} /> More
+          </button>
           {profile?.is_admin && (
             <Link href="/admin" className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover text-purple-400">
               <Settings size={18} /> Admin
@@ -165,12 +186,38 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
           )}
         </nav>
 
+        {/* Search input */}
+        {searchOpen && (
+          <div className="px-3 pt-1 pb-2">
+            <input
+              autoFocus
+              type="text"
+              placeholder="Search conversations…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-white/30"
+            />
+          </div>
+        )}
+
+        {/* Toast */}
+        {toast && (
+          <div className="mx-3 mb-1 rounded-lg bg-white/10 px-3 py-2 text-xs text-gray-300 text-center">
+            {toast}
+          </div>
+        )}
+
         {/* recents */}
-        <div className="mt-3 flex-1 overflow-y-auto px-2">
+        <div className="mt-1 flex-1 overflow-y-auto px-2">
           {conversations.length > 0 && (
-            <p className="px-3 py-2 text-xs font-medium text-gray-500">Recents</p>
+            <p className="px-3 py-2 text-xs font-medium text-gray-500">
+              {searchOpen && searchQuery ? `Results for "${searchQuery}"` : "Recents"}
+            </p>
           )}
-          {conversations.map((c) => (
+          {conversations.filter(c =>
+            !searchOpen || !searchQuery ||
+            (c.title || "New chat").toLowerCase().includes(searchQuery.toLowerCase())
+          ).map((c) => (
             <div
               key={c.id}
               onClick={() => onSelect(c.id)}

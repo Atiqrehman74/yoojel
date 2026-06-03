@@ -72,7 +72,7 @@ export default function Composer({
         className="rounded-[22px] bg-composer p-2 md:rounded-[26px]"
         style={{
           boxShadow:
-            "0 0 0 1px rgba(14,196,160,0.18), 0 0 18px 4px rgba(14,196,160,0.28), 0 0 40px 8px rgba(6,182,212,0.18), 0 0 70px 16px rgba(129,140,248,0.12)",
+            "0 0 0 1.5px rgba(14,196,160,0.5), 0 0 20px 6px rgba(14,196,160,0.55), 0 0 50px 14px rgba(6,182,212,0.35), 0 0 90px 28px rgba(129,140,248,0.22)",
         }}
       >
         {/* attachment previews */}

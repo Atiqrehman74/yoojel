@@ -68,14 +68,13 @@ export default function Composer({
   return (
     <div className="mx-auto w-full max-w-3xl px-3 pb-safe-4">
       <div className="relative">
-        {/* Logo-colored glow behind the composer */}
-        <div
-          className="pointer-events-none absolute inset-0 -z-10 rounded-[28px] opacity-70 blur-2xl"
-          style={{
-            background: "linear-gradient(135deg, #0ec4a0 0%, #06b6d4 40%, #818cf8 80%, #10a37f 100%)",
-          }}
-        />
-      <div className="rounded-[22px] bg-composer p-2 shadow-lg md:rounded-[26px]">
+      <div
+        className="rounded-[22px] bg-composer p-2 md:rounded-[26px]"
+        style={{
+          boxShadow:
+            "0 0 0 1px rgba(14,196,160,0.18), 0 0 18px 4px rgba(14,196,160,0.28), 0 0 40px 8px rgba(6,182,212,0.18), 0 0 70px 16px rgba(129,140,248,0.12)",
+        }}
+      >
         {/* attachment previews */}
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-2 px-2 pb-2 pt-1">

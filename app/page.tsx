@@ -15,11 +15,13 @@ import Sidebar from "@/components/Sidebar";
 import MessageList from "@/components/MessageList";
 import Composer from "@/components/Composer";
 import { MODELS, DEFAULT_MODEL } from "@/lib/models";
+import { createClient } from "@/lib/supabase";
 import type {
   Attachment,
   ChatMessage,
   Conversation,
 } from "@/lib/types";
+import type { Profile } from "@/lib/supabase";
 
 const STORAGE_KEY = "yoojel-conversations";
 const SEARCH_COUNT_KEY = "yoojel-search-count";
@@ -39,7 +41,9 @@ export default function Home() {
   const [searchCount, setSearchCount] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
+  const [headerProfile, setHeaderProfile] = useState<Profile | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const supabase = createClient();
 
   const active = conversations.find((c) => c.id === activeId) || null;
   const messages = active?.messages ?? [];
@@ -77,6 +81,28 @@ export default function Home() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
     } catch {}
   }, [conversations]);
+
+  // Load profile for header display
+  useEffect(() => {
+    supabase.auth.getSession().then((res: any) => {
+      const session = res?.data?.session;
+      if (!session) return;
+      const u = session.user;
+      if (u) {
+        setHeaderProfile({
+          id: u.id, email: u.email ?? '',
+          full_name: u.user_metadata?.full_name ?? null,
+          plan: 'free', stripe_customer_id: null,
+          stripe_subscription_id: null, message_count: 0,
+          is_admin: false, created_at: u.created_at ?? '',
+        });
+      }
+      fetch('/api/profile', { headers: { Authorization: `Bearer ${session.access_token}` } })
+        .then(r => r.json())
+        .then(({ profile }) => { if (profile) setHeaderProfile(profile as Profile); })
+        .catch(() => {});
+    });
+  }, []);
 
   const closeSidebarOnMobile = () => {
     if (window.innerWidth < 768) setSidebarOpen(false);
@@ -436,12 +462,29 @@ export default function Home() {
               </>
             )}
           </div>
-          <a
-            href="https://yoojel.com"
-            className="hidden rounded-full border border-white/15 px-4 py-1.5 text-sm text-gray-200 hover:bg-hover sm:block"
-          >
-            yoojel.com
-          </a>
+          {headerProfile ? (
+            <div className="hidden sm:flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5">
+              <span className="text-sm text-gray-200 max-w-[120px] truncate">
+                {headerProfile.full_name ?? headerProfile.email}
+              </span>
+              {headerProfile.plan === 'pro' ? (
+                <span className="flex items-center gap-1 rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-semibold text-amber-400">
+                  <Crown size={10} /> Pro
+                </span>
+              ) : (
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-gray-400">
+                  Standard
+                </span>
+              )}
+            </div>
+          ) : (
+            <a
+              href="https://yoojel.com"
+              className="hidden rounded-full border border-white/15 px-4 py-1.5 text-sm text-gray-200 hover:bg-hover sm:block"
+            >
+              yoojel.com
+            </a>
+          )}
         </header>
 
         {/* body */}

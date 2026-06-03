@@ -67,6 +67,14 @@ export default function Composer({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-3 pb-safe-4">
+      <div className="relative">
+        {/* Logo-colored glow behind the composer */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 rounded-[28px] opacity-70 blur-2xl"
+          style={{
+            background: "linear-gradient(135deg, #0ec4a0 0%, #06b6d4 40%, #818cf8 80%, #10a37f 100%)",
+          }}
+        />
       <div className="rounded-[22px] bg-composer p-2 shadow-lg md:rounded-[26px]">
         {/* attachment previews */}
         {attachments.length > 0 && (
@@ -175,6 +183,7 @@ export default function Composer({
             </button>
           )}
         </div>
+      </div>
       </div>
       <p className="mt-2 text-center text-xs text-gray-500">
         Yoojel can make mistakes. Check important info.

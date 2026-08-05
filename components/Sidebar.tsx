@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import {
   PenSquare, Search, Library, FolderClosed, LayoutGrid,
-  MoreHorizontal, PanelLeft, Trash2, LogOut, Crown, Settings,
+  MoreHorizontal, PanelLeft, Trash2, LogOut, Crown, Settings, FolderPlus,
 } from "lucide-react";
-import type { Conversation } from "@/lib/types";
+import type { Conversation, Project } from "@/lib/types";
 import type { Profile } from "@/lib/supabase";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+const PROJECTS_KEY = "yoojel-projects";
 
 interface Props {
   open: boolean;
@@ -19,6 +21,7 @@ interface Props {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onAssignProject: (id: string, projectId: string | null) => void;
 }
 
 const navItems = [
@@ -29,7 +32,7 @@ const navItems = [
   { icon: MoreHorizontal, label: "More" },
 ];
 
-export default function Sidebar({ open, onToggle, conversations, activeId, onSelect, onNew, onDelete }: Props) {
+export default function Sidebar({ open, onToggle, conversations, activeId, onSelect, onNew, onDelete, onAssignProject }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [hasSession, setHasSession] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -37,8 +40,17 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectMenuFor, setProjectMenuFor] = useState<string | null>(null);
   const supabase = createClient();
   const router = useRouter();
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PROJECTS_KEY);
+      if (raw) setProjects(JSON.parse(raw));
+    } catch {}
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -223,22 +235,73 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
           {conversations.filter(c =>
             !searchOpen || !searchQuery ||
             (c.title || "New chat").toLowerCase().includes(searchQuery.toLowerCase())
-          ).map((c) => (
-            <div
-              key={c.id}
-              onClick={() => onSelect(c.id)}
-              className={`group flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm ${c.id === activeId ? "bg-hover" : "hover:bg-hover"}`}
-            >
-              <span className="truncate">{c.title || "New chat"}</span>
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(c.id); }}
-                className="ml-2 hidden flex-shrink-0 text-gray-400 hover:text-red-400 group-hover:block"
-                aria-label="Delete chat"
+          ).map((c) => {
+            const assignedProject = projects.find((p) => p.id === c.projectId);
+            return (
+              <div
+                key={c.id}
+                onClick={() => onSelect(c.id)}
+                className={`group relative flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm ${c.id === activeId ? "bg-hover" : "hover:bg-hover"}`}
               >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))}
+                <span className="truncate">{c.title || "New chat"}</span>
+                <div className="ml-2 flex flex-shrink-0 items-center gap-1">
+                  {assignedProject && (
+                    <span
+                      title={assignedProject.name}
+                      className="hidden max-w-[70px] truncate rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-gray-400 group-hover:inline-block"
+                    >
+                      {assignedProject.name}
+                    </span>
+                  )}
+                  {projects.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProjectMenuFor((cur) => (cur === c.id ? null : c.id));
+                      }}
+                      className={`hidden text-gray-400 hover:text-gray-200 group-hover:block ${assignedProject ? "!block text-cyan-400" : ""}`}
+                      aria-label="Assign to project"
+                    >
+                      <FolderPlus size={15} />
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(c.id); }}
+                    className="hidden text-gray-400 hover:text-red-400 group-hover:block"
+                    aria-label="Delete chat"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+
+                {projectMenuFor === c.id && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setProjectMenuFor(null); }} />
+                    <div className="absolute right-0 top-9 z-20 w-48 rounded-xl border border-white/10 bg-[#2a2a2a] p-1 shadow-2xl">
+                      {c.projectId && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onAssignProject(c.id, null); setProjectMenuFor(null); }}
+                          className="flex w-full items-center rounded-lg px-3 py-2 text-left text-xs text-gray-400 hover:bg-white/5"
+                        >
+                          Remove from project
+                        </button>
+                      )}
+                      {projects.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={(e) => { e.stopPropagation(); onAssignProject(c.id, p.id); setProjectMenuFor(null); }}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs text-gray-200 hover:bg-white/5"
+                        >
+                          <span className="truncate">{p.name}</span>
+                          {c.projectId === p.id && <span className="text-cyan-400">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Upgrade banner for free users */}

@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, MessageSquare, Save, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
-import type { Project } from "@/lib/types";
+import type { Conversation, Project } from "@/lib/types";
 
 const STORAGE_KEY = "yoojel-projects";
+const CONVERSATIONS_KEY = "yoojel-conversations";
 
 export default function ProjectDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,7 @@ export default function ProjectDetailsPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [saved, setSaved] = useState(false);
+  const [chats, setChats] = useState<Conversation[]>([]);
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +45,10 @@ export default function ProjectDetailsPage() {
       setProject(found);
       setName(found.name);
       setDescription(found.description);
+
+      const convRaw = localStorage.getItem(CONVERSATIONS_KEY);
+      const allChats: Conversation[] = convRaw ? JSON.parse(convRaw) : [];
+      setChats(allChats.filter((c) => c.projectId === found.id));
     } catch {
       setNotFound(true);
     }
@@ -162,6 +168,33 @@ export default function ProjectDetailsPage() {
           >
             <Trash2 size={13} /> Delete
           </button>
+        </div>
+
+        <div className="mt-10">
+          <p className="mb-3 text-xs font-medium text-gray-500">
+            Chats in this project {chats.length > 0 && `(${chats.length})`}
+          </p>
+          {chats.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No chats yet. Open a chat, hover it in the sidebar, and use the folder icon to add it here.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {chats.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/?chat=${c.id}`}
+                  className="flex items-center gap-3 rounded-lg border border-white/10 bg-bubble px-3 py-2.5 hover:border-white/25 hover:bg-hover"
+                >
+                  <MessageSquare size={15} className="flex-shrink-0 text-gray-400" />
+                  <span className="flex-1 truncate text-sm">{c.title || "New chat"}</span>
+                  <span className="flex-shrink-0 text-[11px] text-gray-500">
+                    {new Date(c.createdAt).toLocaleDateString()}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

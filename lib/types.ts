@@ -26,6 +26,7 @@ export interface Conversation {
   messages: ChatMessage[];
   model: string;
   createdAt: number;
+  projectId?: string;
 }
 
 export interface Project {

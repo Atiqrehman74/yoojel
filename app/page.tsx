@@ -71,7 +71,11 @@ export default function Home() {
       if (raw) {
         const parsed: Conversation[] = JSON.parse(raw);
         setConversations(parsed);
-        if (parsed[0]) setActiveId(parsed[0].id);
+        // Deep-link from a project's "Chats" list: /?chat=<id>
+        const requestedId = new URLSearchParams(window.location.search).get("chat");
+        const requested = requestedId && parsed.find((c) => c.id === requestedId);
+        if (requested) setActiveId(requested.id);
+        else if (parsed[0]) setActiveId(parsed[0].id);
       }
     } catch {}
   }, []);
@@ -139,6 +143,12 @@ export default function Home() {
   const deleteChat = (id: string) => {
     setConversations((prev) => prev.filter((c) => c.id !== id));
     if (activeId === id) setActiveId(null);
+  };
+
+  const assignToProject = (id: string, projectId: string | null) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, projectId: projectId || undefined } : c))
+    );
   };
 
   const ensureConversation = (firstUserText: string): string => {
@@ -411,6 +421,7 @@ export default function Home() {
         }}
         onNew={newChat}
         onDelete={deleteChat}
+        onAssignProject={assignToProject}
       />
 
       <main className="relative flex h-full min-w-0 flex-1 flex-col">

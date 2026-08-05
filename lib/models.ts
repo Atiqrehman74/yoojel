@@ -6,6 +6,10 @@ export interface ModelOption {
   id: string;
   label: string;
   description: string;
+  // "anthropic" (default) talks to Claude directly. "routesme" routes
+  // through the third-party OpenAI-compatible gateway at routesme.online —
+  // no web search / vision support, kept isolated from the Claude path.
+  provider?: "anthropic" | "routesme";
 }
 
 export const MODELS: ModelOption[] = [
@@ -23,6 +27,12 @@ export const MODELS: ModelOption[] = [
     id: "claude-haiku-4-5-20251001",
     label: "Yoojel Fast",
     description: "Lightweight and quick for simple tasks.",
+  },
+  {
+    id: "DeepSeek-V4-Flash-0731",
+    label: "Yoojel X (Beta)",
+    description: "Experimental — powered by a third-party gateway, not Claude.",
+    provider: "routesme",
   },
 ];
 

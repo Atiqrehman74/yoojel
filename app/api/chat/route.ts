@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
-import { DEFAULT_MODEL, isValidModel } from "@/lib/models";
+import { DEFAULT_MODEL, isValidModel, MODELS } from "@/lib/models";
 import type { ChatRequest } from "@/lib/types";
+import { streamRoutesme } from "./routesme";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -14,14 +15,6 @@ Be clear, accurate, and concise. Use Markdown for formatting and fenced code
 blocks (with a language tag) for code. If you are unsure, say so.`;
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: "ANTHROPIC_API_KEY is not set on the server." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
   let body: ChatRequest;
   try {
     body = (await req.json()) as ChatRequest;
@@ -34,6 +27,19 @@ export async function POST(req: NextRequest) {
 
   const model = isValidModel(body.model) ? body.model : DEFAULT_MODEL;
   const useWebSearch = Boolean(body.webSearch);
+  const modelInfo = MODELS.find((m) => m.id === model);
+
+  if (modelInfo?.provider === "routesme") {
+    return streamRoutesme(model, body, SYSTEM_PROMPT);
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return new Response(
+      JSON.stringify({ error: "ANTHROPIC_API_KEY is not set on the server." }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
 
   const messages: Anthropic.MessageParam[] = (body.messages || []).map((m) => {
     if (m.role === "user" && m.attachments && m.attachments.length > 0) {

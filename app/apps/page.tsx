@@ -57,7 +57,10 @@ export default function AppsPage() {
                     : "opacity-50"
                 }`}
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-white"
+                  style={{ background: "linear-gradient(135deg, #06b6d4, #a855f7)" }}
+                >
                   <Icon size={18} />
                 </div>
                 <div>

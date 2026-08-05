@@ -173,9 +173,9 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
           <button onClick={() => showToast("Projects — coming soon")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
             <FolderClosed size={18} /> Projects
           </button>
-          <button onClick={() => showToast("Apps — coming soon")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
+          <Link href="/apps" className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
             <LayoutGrid size={18} /> Apps
-          </button>
+          </Link>
           <button onClick={() => showToast("More options — coming soon")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
             <MoreHorizontal size={18} /> More
           </button>

@@ -29,13 +29,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { prompt } = await req.json();
+  const { prompt, size } = await req.json();
   if (!prompt) {
     return new Response(JSON.stringify({ error: "Missing prompt." }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  const ALLOWED_SIZES = ["1024x1024", "1024x1792", "1792x1024"];
+  const imageSize = ALLOWED_SIZES.includes(size) ? size : "1024x1024";
 
   try {
     // ---- EXAMPLE: OpenAI image API. Replace with your provider. ----
@@ -48,7 +51,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: "gpt-image-1",
         prompt,
-        size: "1024x1024",
+        size: imageSize,
         n: 1,
       }),
     });

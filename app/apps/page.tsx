@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ImageIcon, Video, Mic } from "lucide-react";
+import { ArrowLeft, ImageIcon, Video, Mic, Search } from "lucide-react";
 
 const apps = [
   {
@@ -9,6 +9,13 @@ const apps = [
     icon: ImageIcon,
     name: "Image Studio",
     description: "Generate images from a text prompt.",
+    available: true,
+  },
+  {
+    href: "/apps/deep-research",
+    icon: Search,
+    name: "Deep Research",
+    description: "Multi-search, cited research reports.",
     available: true,
   },
   {

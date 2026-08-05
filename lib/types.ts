@@ -28,6 +28,13 @@ export interface Conversation {
   createdAt: number;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: number;
+}
+
 /** Payload the client POSTs to /api/chat */
 export interface ChatRequest {
   model: string;

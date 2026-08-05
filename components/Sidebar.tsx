@@ -170,9 +170,15 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
           <button onClick={() => showToast("Library — coming soon")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
             <Library size={18} /> Library
           </button>
-          <button onClick={() => showToast("Projects — coming soon")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
-            <FolderClosed size={18} /> Projects
-          </button>
+          {hasSession ? (
+            <Link href="/projects" className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
+              <FolderClosed size={18} /> Projects
+            </Link>
+          ) : (
+            <button onClick={() => showToast("Sign in to use Projects")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
+              <FolderClosed size={18} /> Projects
+            </button>
+          )}
           <Link href="/apps" className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
             <LayoutGrid size={18} /> Apps
           </Link>

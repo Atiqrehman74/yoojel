@@ -1,0 +1,169 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Loader2, Save, Trash2 } from "lucide-react";
+import { createClient } from "@/lib/supabase";
+import type { Project } from "@/lib/types";
+
+const STORAGE_KEY = "yoojel-projects";
+
+export default function ProjectDetailsPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [checking, setChecking] = useState(true);
+  const [signedIn, setSignedIn] = useState(false);
+  const [project, setProject] = useState<Project | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    supabase.auth.getSession().then((res: any) => {
+      setSignedIn(Boolean(res?.data?.session));
+      setChecking(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!signedIn) return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const projects: Project[] = raw ? JSON.parse(raw) : [];
+      const found = projects.find((p) => p.id === id);
+      if (!found) {
+        setNotFound(true);
+        return;
+      }
+      setProject(found);
+      setName(found.name);
+      setDescription(found.description);
+    } catch {
+      setNotFound(true);
+    }
+  }, [signedIn, id]);
+
+  const persist = (updater: (projects: Project[]) => Project[]) => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const projects: Project[] = raw ? JSON.parse(raw) : [];
+    const next = updater(projects);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    return next;
+  };
+
+  const save = () => {
+    if (!project || !name.trim()) return;
+    const updated = { ...project, name: name.trim(), description: description.trim() };
+    persist((projects) => projects.map((p) => (p.id === project.id ? updated : p)));
+    setProject(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  const remove = () => {
+    if (!project) return;
+    if (!confirm(`Delete "${project.name}"? This can't be undone.`)) return;
+    persist((projects) => projects.filter((p) => p.id !== project.id));
+    router.push("/projects");
+  };
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-main text-gray-400">
+        <Loader2 size={20} className="animate-spin" />
+      </div>
+    );
+  }
+
+  if (!signedIn) {
+    return (
+      <div className="min-h-screen bg-main text-gray-100">
+        <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+          <Link href="/" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to chat">
+            <ArrowLeft size={18} />
+          </Link>
+          <h1 className="text-sm font-semibold">Project</h1>
+        </header>
+        <main className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-24 text-center">
+          <p className="text-sm text-gray-400">Sign in to view this project.</p>
+          <Link href="/auth" className="rounded-lg bg-white px-4 py-2 text-xs font-semibold text-black">
+            Sign In / Register
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-main text-gray-100">
+        <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+          <Link href="/projects" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to Projects">
+            <ArrowLeft size={18} />
+          </Link>
+          <h1 className="text-sm font-semibold">Project</h1>
+        </header>
+        <main className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-24 text-center">
+          <p className="text-sm text-gray-400">Project not found.</p>
+          <Link href="/projects" className="text-xs text-gray-400 underline hover:text-gray-200">
+            Back to Projects
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-main text-gray-100">
+      <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+        <Link href="/projects" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to Projects">
+          <ArrowLeft size={18} />
+        </Link>
+        <h1 className="text-sm font-semibold">Project details</h1>
+      </header>
+
+      <main className="mx-auto max-w-2xl px-4 py-8">
+        <label className="mb-1 block text-xs font-medium text-gray-500">Name</label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mb-4 w-full rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-sm text-gray-100 outline-none focus:border-white/30"
+        />
+
+        <label className="mb-1 block text-xs font-medium text-gray-500">Description</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={4}
+          className="mb-1 w-full resize-none rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-sm text-gray-100 outline-none focus:border-white/30"
+        />
+        {project && (
+          <p className="mb-4 text-[11px] text-gray-500">
+            Created {new Date(project.createdAt).toLocaleString()}
+          </p>
+        )}
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={save}
+            disabled={!name.trim()}
+            className="flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-xs font-semibold text-black disabled:opacity-40"
+          >
+            <Save size={13} /> {saved ? "Saved" : "Save"}
+          </button>
+          <button
+            onClick={remove}
+            className="flex items-center gap-1.5 rounded-lg border border-red-500/30 px-4 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/10"
+          >
+            <Trash2 size={13} /> Delete
+          </button>
+        </div>
+      </main>
+    </div>
+  );
+}

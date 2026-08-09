@@ -31,7 +31,7 @@ export const MODELS: ModelOption[] = [
   {
     id: "DeepSeek-V4-Flash-0731",
     label: "Yoojel X (Beta)",
-    description: "Experimental — powered by a third-party gateway, not Claude.",
+    description: "Experimental — powered by IoBM Tech.",
     provider: "routesme",
   },
 ];

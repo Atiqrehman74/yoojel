@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendNotificationEmail, renderLeadEmailHtml } from "@/lib/email";
 
 export const runtime = "nodejs";
+
+const NOTIFY_EMAIL = "info@io-bm.com";
 
 export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,6 +21,7 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  const interests = Array.isArray(body.interests) ? body.interests : [];
   const { error } = await admin.from("corporate_leads").insert({
     company_name: body.companyName || null,
     industry: body.industry || null,
@@ -30,7 +34,7 @@ export async function POST(req: NextRequest) {
     business_email: businessEmail,
     phone: body.phone || null,
     preferred_contact: body.preferredContact || null,
-    interests: Array.isArray(body.interests) ? body.interests : [],
+    interests,
     requirements: body.requirements || null,
   });
 
@@ -38,5 +42,34 @@ export async function POST(req: NextRequest) {
     console.error("corporate_leads insert failed:", error);
     return NextResponse.json({ error: "Could not submit right now. Please try again." }, { status: 500 });
   }
+
+  // Best-effort notification -- the lead is already saved, so an email
+  // hiccup shouldn't turn into a failed submission for the user. Awaited
+  // (not fire-and-forget) since a serverless function can be frozen the
+  // instant the response is sent, killing any un-awaited work in flight.
+  try {
+    await sendNotificationEmail({
+      to: NOTIFY_EMAIL,
+      subject: `New Yoojel Corporate lead: ${body.companyName || fullName}`,
+      html: renderLeadEmailHtml("New Yoojel Corporate early-access request", [
+        ["Company Name", body.companyName],
+        ["Industry / Sector", body.industry],
+        ["Country", body.country],
+        ["Company Website", body.companyWebsite],
+        ["Number of Employees", body.employeeCount],
+        ["Annual Revenue Range", body.revenueRange],
+        ["Full Name", fullName],
+        ["Job Title / Position", body.jobTitle],
+        ["Business Email", businessEmail],
+        ["Phone / WhatsApp", body.phone],
+        ["Preferred Contact Method", body.preferredContact],
+        ["Interested In", interests.join(", ")],
+        ["Requirements", body.requirements],
+      ]),
+    });
+  } catch {
+    // already logged inside sendNotificationEmail
+  }
+
   return NextResponse.json({ ok: true });
 }

@@ -31,7 +31,6 @@ const apps = [
     name: "Yoojel Corporate",
     description: "AI-powered enterprise ecosystem.",
     available: true,
-    badge: "Coming Soon",
   },
   {
     href: "/apps/moviemaker",
@@ -39,7 +38,6 @@ const apps = [
     name: "Yoojel MovieMaker",
     description: "AI-powered feature film production.",
     available: true,
-    badge: "Coming Soon",
   },
   {
     href: null,
@@ -89,9 +87,9 @@ export default function AppsPage() {
                 <div>
                   <div className="flex items-center gap-2 text-sm font-medium">
                     {app.name}
-                    {(!app.available || app.badge) && (
+                    {!app.available && (
                       <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-normal text-gray-400">
-                        {app.available ? app.badge : "Coming soon"}
+                        Coming soon
                       </span>
                     )}
                   </div>

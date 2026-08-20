@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  let failed = false
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
     const userId = session.metadata?.user_id
@@ -34,20 +36,29 @@ export async function POST(req: NextRequest) {
     }
     if (userId) {
       const { error } = await supabase.from('profiles').update(update).eq('id', userId)
-      if (error) console.error('Stripe webhook: failed to upgrade by user_id', userId, error)
+      if (error) { console.error('Stripe webhook: failed to upgrade by user_id', userId, error); failed = true }
     } else if (email) {
       const { error } = await supabase.from('profiles').update(update).eq('email', email)
-      if (error) console.error('Stripe webhook: failed to upgrade by email fallback', email, error)
+      if (error) { console.error('Stripe webhook: failed to upgrade by email fallback', email, error); failed = true }
     } else {
       console.error('Stripe webhook: checkout.session.completed has no user_id metadata and no email — cannot upgrade', session.id)
+      failed = true
     }
   }
 
   if (event.type === 'customer.subscription.deleted') {
     const sub = event.data.object as Stripe.Subscription
-    await supabase.from('profiles')
+    const { error } = await supabase.from('profiles')
       .update({ plan: 'free', stripe_subscription_id: null })
       .eq('stripe_customer_id', sub.customer as string)
+    if (error) { console.error('Stripe webhook: failed to downgrade on subscription deletion', sub.customer, error); failed = true }
+  }
+
+  // Non-2xx tells Stripe to retry (with backoff, over ~3 days) instead of
+  // silently dropping a failed upgrade -- this is what makes the grant
+  // self-healing against transient DB errors instead of needing a manual fix.
+  if (failed) {
+    return NextResponse.json({ received: true, error: 'processing failed, will retry' }, { status: 500 })
   }
 
   return NextResponse.json({ received: true })

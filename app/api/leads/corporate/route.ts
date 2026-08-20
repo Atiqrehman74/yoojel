@@ -4,7 +4,7 @@ import { sendNotificationEmail, renderLeadEmailHtml } from "@/lib/email";
 
 export const runtime = "nodejs";
 
-const NOTIFY_EMAIL = "info@io-bm.com";
+const NOTIFY_EMAIL = "mus.iobm@gmail.com";
 
 export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

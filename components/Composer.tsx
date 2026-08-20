@@ -1,8 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Plus, ArrowUp, Globe, X, Square } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Plus, ArrowUp, Globe, X, Square, Mic, Check } from "lucide-react";
 import type { Attachment } from "@/lib/types";
+import VoiceInputModal, { VOICE_LANGUAGES } from "./VoiceInputModal";
+
+// Web Speech API isn't in TS's default DOM lib types, and only the
+// webkit-prefixed constructor exists outside Chromium browsers.
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((e: any) => void) | null;
+  onerror: ((e: any) => void) | null;
+  onend: (() => void) | null;
+};
+
+function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === "undefined") return null;
+  const w = window as any;
+  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
+}
 
 interface Props {
   onSend: (text: string, attachments: Attachment[]) => void;
@@ -25,6 +45,85 @@ export default function Composer({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+
+  const [voiceSupported, setVoiceSupported] = useState(true);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [voiceLang, setVoiceLang] = useState(VOICE_LANGUAGES[0].code);
+  const [listening, setListening] = useState(false);
+  const [interimText, setInterimText] = useState("");
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const textBeforeListeningRef = useRef("");
+
+  useEffect(() => {
+    setVoiceSupported(!!getSpeechRecognitionCtor());
+    const savedLang = window.localStorage.getItem("yoojel_voice_lang");
+    if (savedLang) setVoiceLang(savedLang);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  const startListening = () => {
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) {
+      setVoiceSupported(false);
+      return;
+    }
+    textBeforeListeningRef.current = text;
+    setInterimText("");
+    const recognition = new Ctor();
+    recognition.lang = voiceLang;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (e: any) => {
+      let finalChunk = "";
+      let interimChunk = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const result = e.results[i];
+        if (result.isFinal) finalChunk += result[0].transcript;
+        else interimChunk += result[0].transcript;
+      }
+      if (finalChunk) {
+        setText((prev) => (prev ? `${prev} ${finalChunk}` : finalChunk).trim());
+      }
+      setInterimText(interimChunk);
+    };
+    recognition.onerror = () => {
+      setListening(false);
+      setInterimText("");
+    };
+    recognition.onend = () => {
+      setListening(false);
+      setInterimText("");
+    };
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  };
+
+  const finishListening = () => {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setListening(false);
+    setInterimText("");
+  };
+
+  const cancelListening = () => {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setListening(false);
+    setInterimText("");
+    setText(textBeforeListeningRef.current);
+  };
+
+  const beginVoiceInput = () => {
+    window.localStorage.setItem("yoojel_voice_lang", voiceLang);
+    setShowVoiceModal(false);
+    startListening();
+  };
 
   const autoGrow = () => {
     const ta = taRef.current;
@@ -98,23 +197,37 @@ export default function Composer({
           </div>
         )}
 
-        <textarea
-          ref={taRef}
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            autoGrow();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          rows={1}
-          placeholder="Ask anything"
-          className="max-h-[180px] w-full resize-none bg-transparent px-3 py-2 text-[15px] text-gray-100 placeholder-gray-500 outline-none"
-        />
+        {listening ? (
+          <div className="flex min-h-[44px] items-center gap-2 px-3 py-2 text-[15px]">
+            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+            </span>
+            <span className="text-gray-100">
+              {text}
+              {interimText && <span className="text-gray-500"> {interimText}</span>}
+              {!text && !interimText && <span className="text-gray-500">Listening…</span>}
+            </span>
+          </div>
+        ) : (
+          <textarea
+            ref={taRef}
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              autoGrow();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            rows={1}
+            placeholder="Ask anything"
+            className="max-h-[180px] w-full resize-none bg-transparent px-3 py-2 text-[15px] text-gray-100 placeholder-gray-500 outline-none"
+          />
+        )}
 
         <div className="flex items-center justify-between px-1 pt-1">
           <div className="flex items-center gap-1">
@@ -163,13 +276,38 @@ export default function Composer({
             />
           </div>
 
-          {streaming ? (
+          {listening ? (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={cancelListening}
+                className="rounded-full p-2 text-gray-300 hover:bg-white/10"
+                aria-label="Cancel voice input"
+              >
+                <X size={18} />
+              </button>
+              <button
+                onClick={finishListening}
+                className="rounded-full bg-white p-2 text-black hover:opacity-90"
+                aria-label="Done"
+              >
+                <Check size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+          ) : streaming ? (
             <button
               onClick={onStop}
               className="rounded-full bg-white p-2 text-black hover:opacity-90"
               aria-label="Stop"
             >
               <Square size={16} fill="black" />
+            </button>
+          ) : !text.trim() && attachments.length === 0 && voiceSupported ? (
+            <button
+              onClick={() => setShowVoiceModal(true)}
+              className="rounded-full p-2 text-gray-300 hover:bg-white/10"
+              aria-label="Voice input"
+            >
+              <Mic size={20} />
             </button>
           ) : (
             <button
@@ -187,6 +325,15 @@ export default function Composer({
       <p className="mt-2 text-center text-xs text-gray-500">
         Yoojel can make mistakes. Check important info.
       </p>
+
+      {showVoiceModal && (
+        <VoiceInputModal
+          language={voiceLang}
+          onLanguageChange={setVoiceLang}
+          onClose={() => setShowVoiceModal(false)}
+          onContinue={beginVoiceInput}
+        />
+      )}
     </div>
   );
 }

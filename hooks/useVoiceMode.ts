@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
-import { getSpeechRecognitionCtor, type SpeechRecognitionLike } from "@/lib/speechRecognition";
+import { audioSupported, recordUntilSilence, type SilenceRecording } from "@/lib/audioRecorder";
 import type { Attachment, ChatMessage } from "@/lib/types";
 
 export type VoiceModePhase = "listening" | "thinking" | "speaking";
@@ -67,7 +67,7 @@ export function useVoiceMode({
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const activeRecordingRef = useRef<SilenceRecording | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const waitingForReplyRef = useRef(false);
   const activeRef = useRef(false);
@@ -91,64 +91,59 @@ export function useVoiceMode({
 
   const currentLang = () => window.localStorage.getItem("yoojel_voice_lang") || DEFAULT_VOICE_LANG;
 
-  const startTurn = () => {
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) {
+  const startTurn = async () => {
+    if (!audioSupported()) {
       setActive(false);
       return;
     }
     setPhase("listening");
     setTranscript("");
     setError(null);
-    let finalTranscript = "";
-    let lastCommittedIndex = -1;
-    const recognition = new Ctor();
-    recognition.lang = currentLang();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.onresult = (e: any) => {
-      // Only ever trust the LAST entry in e.results, and commit a final
-      // result exactly once per index. Summing across all entries assumed
-      // each index holds distinct, non-overlapping text -- on some Android
-      // engines, entries instead hold cumulative, overlapping snapshots of
-      // the same growing utterance ("give" -> "give me" -> "give me
-      // detail"), so summing them compounded the duplication instead of
-      // fixing it.
-      const results = e.results;
-      if (!results || results.length === 0) return;
-      const lastIdx = results.length - 1;
-      const lastResult = results[lastIdx];
-      const lastText: string = lastResult[0]?.transcript ?? "";
 
-      if (lastResult.isFinal) {
-        if (lastIdx > lastCommittedIndex) {
-          lastCommittedIndex = lastIdx;
-          finalTranscript = finalTranscript ? `${finalTranscript} ${lastText}` : lastText;
-        }
-        setTranscript(finalTranscript);
-      } else {
-        setTranscript(finalTranscript ? `${finalTranscript} ${lastText}` : lastText);
-      }
-    };
-    recognition.onerror = (e: any) => {
-      if (e?.error === "no-speech" || e?.error === "aborted") return;
-      setError("Didn't catch that — try again.");
-    };
-    recognition.onend = () => {
+    const recording = recordUntilSilence();
+    activeRecordingRef.current = recording;
+    let blob: Blob;
+    try {
+      blob = await recording.promise;
+    } catch {
+      activeRecordingRef.current = null;
+      if (!activeRef.current) return; // deliberately cancelled via end()
+      setError("Couldn't access the microphone. Check your browser permissions.");
+      setActive(false);
+      return;
+    }
+    activeRecordingRef.current = null;
+    if (!activeRef.current) return;
+
+    setPhase("thinking");
+    try {
+      const form = new FormData();
+      form.append("audio", blob, "recording.webm");
+      form.append("language", currentLang().split("-")[0]);
+      const headers = await authHeaders();
+      const res = await fetch("/api/transcribe", { method: "POST", headers, body: form });
+      const data = await res.json();
       if (!activeRef.current) return;
-      const trimmed = finalTranscript.trim();
+      if (!res.ok) {
+        setError(data.error || "Didn't catch that — try again.");
+        startTurn();
+        return;
+      }
+      const trimmed = (data.text || "").trim();
+      setTranscript(trimmed);
       if (trimmed) {
         submitTurn(trimmed);
       } else {
         startTurn();
       }
-    };
-    recognitionRef.current = recognition;
-    recognition.start();
+    } catch (e: any) {
+      if (!activeRef.current) return;
+      setError(e?.message || "Didn't catch that — try again.");
+      startTurn();
+    }
   };
 
   const submitTurn = (spokenText: string) => {
-    recognitionRef.current = null;
     setPhase("thinking");
     setTranscript(spokenText);
     waitingForReplyRef.current = true;
@@ -275,8 +270,7 @@ export function useVoiceMode({
   }, [streaming, active, messages]);
 
   const start = () => {
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) return;
+    if (!audioSupported()) return;
     setActive(true);
     activeRef.current = true;
     startTurn();
@@ -289,8 +283,8 @@ export function useVoiceMode({
     replyDoneRef.current = false;
     chunkQueueRef.current = [];
     processingQueueRef.current = false;
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
+    activeRecordingRef.current?.cancel();
+    activeRecordingRef.current = null;
     audioRef.current?.pause();
     audioRef.current = null;
     setTranscript("");
@@ -314,7 +308,7 @@ export function useVoiceMode({
 
   useEffect(() => {
     return () => {
-      recognitionRef.current?.stop();
+      activeRecordingRef.current?.cancel();
       audioRef.current?.pause();
     };
   }, []);

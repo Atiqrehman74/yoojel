@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, ArrowUp, Globe, X, Square, Mic, Check, AudioLines } from "lucide-react";
+import { Plus, ArrowUp, Globe, X, Square, Mic, Check, AudioLines, Loader2 } from "lucide-react";
 import type { Attachment } from "@/lib/types";
-import { getSpeechRecognitionCtor, type SpeechRecognitionLike } from "@/lib/speechRecognition";
+import { audioSupported, startRecording, type ActiveRecording } from "@/lib/audioRecorder";
+import { createClient } from "@/lib/supabase";
 import type { useVoiceMode } from "@/hooks/useVoiceMode";
 import VoiceInputModal, { VOICE_LANGUAGES } from "./VoiceInputModal";
 import VoiceModeOverlay from "./VoiceModeOverlay";
@@ -40,88 +41,79 @@ export default function Composer({
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [voiceLang, setVoiceLang] = useState(VOICE_LANGUAGES[0].code);
   const [listening, setListening] = useState(false);
-  const [interimText, setInterimText] = useState("");
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const recordingRef = useRef<ActiveRecording | null>(null);
   const textBeforeListeningRef = useRef("");
 
   useEffect(() => {
-    setVoiceSupported(!!getSpeechRecognitionCtor());
+    setVoiceSupported(audioSupported());
     const savedLang = window.localStorage.getItem("yoojel_voice_lang");
     if (savedLang) setVoiceLang(savedLang);
   }, []);
 
   useEffect(() => {
     return () => {
-      recognitionRef.current?.stop();
+      recordingRef.current?.cancel();
     };
   }, []);
 
-  const startListening = () => {
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) {
+  const authHeaders = async (): Promise<Record<string, string>> => {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const startListening = async () => {
+    if (!audioSupported()) {
       setVoiceSupported(false);
       return;
     }
     textBeforeListeningRef.current = text;
-    setInterimText("");
-    const recognition = new Ctor();
-    recognition.lang = voiceLang;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    const baseText = textBeforeListeningRef.current;
-    let finalTranscript = "";
-    let lastCommittedIndex = -1;
-    recognition.onresult = (e: any) => {
-      // Only ever trust the LAST entry in e.results, and commit a final
-      // result exactly once per index. Summing across all entries (the
-      // previous approach) assumed each index holds distinct,
-      // non-overlapping text -- on some Android engines, entries instead
-      // hold cumulative, overlapping snapshots of the same growing
-      // utterance ("give" -> "give me" -> "give me detail"), so summing
-      // them compounded the duplication instead of fixing it.
-      const results = e.results;
-      if (!results || results.length === 0) return;
-      const lastIdx = results.length - 1;
-      const lastResult = results[lastIdx];
-      const lastText: string = lastResult[0]?.transcript ?? "";
-
-      if (lastResult.isFinal) {
-        if (lastIdx > lastCommittedIndex) {
-          lastCommittedIndex = lastIdx;
-          finalTranscript = finalTranscript ? `${finalTranscript} ${lastText}` : lastText;
-          setText((baseText ? `${baseText} ${finalTranscript}` : finalTranscript).trim());
-        }
-        setInterimText("");
-      } else {
-        setInterimText(lastText);
-      }
-    };
-    recognition.onerror = () => {
-      setListening(false);
-      setInterimText("");
-    };
-    recognition.onend = () => {
-      setListening(false);
-      setInterimText("");
-    };
-    recognitionRef.current = recognition;
-    recognition.start();
-    setListening(true);
+    setVoiceError(null);
+    try {
+      recordingRef.current = await startRecording();
+      setListening(true);
+    } catch {
+      setVoiceError("Couldn't access the microphone. Check your browser permissions.");
+    }
   };
 
-  const finishListening = () => {
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
+  const finishListening = async () => {
+    const recording = recordingRef.current;
+    recordingRef.current = null;
     setListening(false);
-    setInterimText("");
+    if (!recording) return;
+    setTranscribing(true);
+    try {
+      const blob = await recording.stop();
+      const form = new FormData();
+      form.append("audio", blob, "recording.webm");
+      form.append("language", voiceLang.split("-")[0]);
+      const headers = await authHeaders();
+      const res = await fetch("/api/transcribe", { method: "POST", headers, body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        setVoiceError(data.error || "Couldn't transcribe that.");
+        return;
+      }
+      if (data.text) {
+        const base = textBeforeListeningRef.current;
+        setText((base ? `${base} ${data.text}` : data.text).trim());
+      }
+    } catch (e: any) {
+      setVoiceError(e?.message || "Couldn't transcribe that.");
+    } finally {
+      setTranscribing(false);
+    }
   };
 
   const cancelListening = () => {
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
+    recordingRef.current?.cancel();
+    recordingRef.current = null;
     setListening(false);
-    setInterimText("");
-    setText(textBeforeListeningRef.current);
+    setVoiceError(null);
   };
 
   const beginVoiceInput = () => {
@@ -202,17 +194,22 @@ export default function Composer({
           </div>
         )}
 
-        {listening ? (
+        {listening || transcribing ? (
           <div className="flex min-h-[44px] items-center gap-2 px-3 py-2 text-[15px]">
-            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
-            </span>
-            <span className="text-gray-100">
-              {text}
-              {interimText && <span className="text-gray-500"> {interimText}</span>}
-              {!text && !interimText && <span className="text-gray-500">Listening…</span>}
-            </span>
+            {transcribing ? (
+              <>
+                <Loader2 size={14} className="flex-shrink-0 animate-spin text-gray-400" />
+                <span className="text-gray-500">Transcribing…</span>
+              </>
+            ) : (
+              <>
+                <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                </span>
+                <span className="text-gray-500">Listening…</span>
+              </>
+            )}
           </div>
         ) : (
           <textarea
@@ -298,6 +295,10 @@ export default function Composer({
                 <Check size={18} strokeWidth={2.5} />
               </button>
             </div>
+          ) : transcribing ? (
+            <div className="rounded-full p-2 text-gray-500">
+              <Loader2 size={18} className="animate-spin" />
+            </div>
           ) : streaming ? (
             <button
               onClick={onStop}
@@ -336,6 +337,9 @@ export default function Composer({
         </div>
       </div>
       </div>
+      {voiceError && (
+        <p className="mt-2 text-center text-xs text-red-300">{voiceError}</p>
+      )}
       <p className="mt-2 text-center text-xs text-gray-500">
         Yoojel can make mistakes. Check important info.
       </p>
@@ -352,7 +356,7 @@ export default function Composer({
       {voiceMode.active && (
         <VoiceModeOverlay
           phase={voiceMode.phase}
-          transcript={voiceMode.phase === "listening" ? voiceMode.transcript : ""}
+          transcript={voiceMode.phase !== "speaking" ? voiceMode.transcript : ""}
           error={voiceMode.error}
           onEnd={voiceMode.end}
           onInterrupt={voiceMode.interrupt}

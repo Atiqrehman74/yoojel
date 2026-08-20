@@ -51,3 +51,30 @@ export async function muapiPoll(requestId: string, key: string): Promise<MuapiPo
 export function muapiOutputUrl(result: MuapiPollResult): string | undefined {
   return result.outputs?.[0] || result.url || result.output?.url;
 }
+
+// Uploads a file to Muapi's hosting (POST /api/v1/upload_file, multipart
+// field name "file") and returns the hosted URL -- needed for models like
+// openai-whisper that take an audio_url rather than accepting raw bytes.
+export async function muapiUploadFile(
+  buffer: Buffer,
+  filename: string,
+  mimeType: string,
+  key: string
+): Promise<string> {
+  const form = new FormData();
+  form.append("file", new Blob([Uint8Array.from(buffer)], { type: mimeType }), filename);
+  const res = await fetch(`${MUAPI_BASE}/upload_file`, {
+    method: "POST",
+    headers: { "x-api-key": key },
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.detail || data?.error || `Muapi upload failed (${res.status})`);
+  }
+  const url = data.url || data.file_url || data.data?.url;
+  if (!url) {
+    throw new Error("Muapi upload succeeded but returned no URL");
+  }
+  return url;
+}

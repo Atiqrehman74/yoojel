@@ -16,6 +16,7 @@ import MessageList from "@/components/MessageList";
 import Composer from "@/components/Composer";
 import { MODELS, DEFAULT_MODEL } from "@/lib/models";
 import { createClient } from "@/lib/supabase";
+import { useVoiceMode } from "@/hooks/useVoiceMode";
 import type {
   Attachment,
   ChatMessage,
@@ -395,6 +396,11 @@ export default function Home() {
   const currentModel = MODELS.find((m) => m.id === model) || MODELS[0];
   const searchesLeft = Math.max(0, SEARCH_LIMIT - searchCount);
 
+  // Instantiated once here (not inside Composer) so it survives the
+  // empty-state <-> pinned-to-bottom Composer swap that happens the moment
+  // the first message sends -- see hooks/useVoiceMode.ts for why.
+  const voiceMode = useVoiceMode({ onSend: sendMessage, streaming, messages });
+
   return (
     <div className="flex h-dvh w-screen overflow-hidden bg-main">
       {/* Mobile backdrop */}
@@ -546,7 +552,7 @@ export default function Home() {
                   webSearch={webSearch}
                   onToggleWebSearch={handleToggleWebSearch}
                   searchesLeft={searchesLeft}
-                  messages={messages}
+                  voiceMode={voiceMode}
                 />
               </div>
               <div className="mt-2 flex flex-wrap justify-center gap-2 md:gap-3">
@@ -592,7 +598,7 @@ export default function Home() {
             webSearch={webSearch}
             onToggleWebSearch={handleToggleWebSearch}
             searchesLeft={searchesLeft}
-            messages={messages}
+            voiceMode={voiceMode}
           />
         )}
 

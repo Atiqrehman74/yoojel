@@ -1,9 +1,29 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, ArrowUp, Globe, X, Square, Mic, Check } from "lucide-react";
-import type { Attachment } from "@/lib/types";
+import { Plus, ArrowUp, Globe, X, Square, Mic, Check, AudioLines } from "lucide-react";
+import type { Attachment, ChatMessage } from "@/lib/types";
+import { createClient } from "@/lib/supabase";
 import VoiceInputModal, { VOICE_LANGUAGES } from "./VoiceInputModal";
+import VoiceModeOverlay, { type VoiceModePhase } from "./VoiceModeOverlay";
+
+const VOICE_MODE_TTS_VOICE = "Friendly_Person";
+const VOICE_MODE_MAX_CHARS = 1800;
+const VOICE_MODE_POLL_MS = 2000;
+const VOICE_MODE_MAX_POLL_ATTEMPTS = 90;
+
+// Strips markdown formatting so the assistant's reply reads naturally aloud.
+function stripMarkdownForSpeech(md: string): string {
+  return md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/[*_`#>~]/g, "")
+    .replace(/\n{2,}/g, ". ")
+    .replace(/\n/g, " ")
+    .trim()
+    .slice(0, VOICE_MODE_MAX_CHARS);
+}
 
 // Web Speech API isn't in TS's default DOM lib types, and only the
 // webkit-prefixed constructor exists outside Chromium browsers.
@@ -31,6 +51,7 @@ interface Props {
   webSearch: boolean;
   onToggleWebSearch: () => void;
   searchesLeft: number;
+  messages: ChatMessage[];
 }
 
 export default function Composer({
@@ -40,6 +61,7 @@ export default function Composer({
   webSearch,
   onToggleWebSearch,
   searchesLeft,
+  messages,
 }: Props) {
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -124,6 +146,179 @@ export default function Composer({
     setShowVoiceModal(false);
     startListening();
   };
+
+  // ---- Voice mode: hands-free conversation loop ----
+  // listen -> auto-send -> wait for the assistant's reply to finish
+  // streaming -> synthesize it via /api/voice -> play it back -> listen again.
+  const [voiceModeActive, setVoiceModeActive] = useState(false);
+  const [voiceModePhase, setVoiceModePhase] = useState<VoiceModePhase>("listening");
+  const [voiceModeTranscript, setVoiceModeTranscript] = useState("");
+  const [voiceModeError, setVoiceModeError] = useState<string | null>(null);
+  const voiceModeRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const voiceModeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const voiceModeWaitingForReplyRef = useRef(false);
+  const voiceModeActiveRef = useRef(false);
+
+  useEffect(() => {
+    voiceModeActiveRef.current = voiceModeActive;
+  }, [voiceModeActive]);
+
+  const authHeaders = async (): Promise<Record<string, string>> => {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const startVoiceModeTurn = () => {
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) {
+      setVoiceSupported(false);
+      setVoiceModeActive(false);
+      return;
+    }
+    setVoiceModePhase("listening");
+    setVoiceModeTranscript("");
+    setVoiceModeError(null);
+    let finalTranscript = "";
+    const recognition = new Ctor();
+    recognition.lang = voiceLang;
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.onresult = (e: any) => {
+      let interimChunk = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const result = e.results[i];
+        if (result.isFinal) finalTranscript += result[0].transcript;
+        else interimChunk += result[0].transcript;
+      }
+      setVoiceModeTranscript(finalTranscript + interimChunk);
+    };
+    recognition.onerror = (e: any) => {
+      if (e?.error === "no-speech" || e?.error === "aborted") return;
+      setVoiceModeError("Didn't catch that — try again.");
+    };
+    recognition.onend = () => {
+      if (!voiceModeActiveRef.current) return;
+      const trimmed = finalTranscript.trim();
+      if (trimmed) {
+        submitVoiceModeTurn(trimmed);
+      } else {
+        startVoiceModeTurn();
+      }
+    };
+    voiceModeRecognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const submitVoiceModeTurn = (spokenText: string) => {
+    voiceModeRecognitionRef.current = null;
+    setVoiceModePhase("thinking");
+    setVoiceModeTranscript(spokenText);
+    voiceModeWaitingForReplyRef.current = true;
+    onSend(spokenText, []);
+  };
+
+  const speakReply = async (replyText: string) => {
+    const clean = stripMarkdownForSpeech(replyText);
+    if (!clean) {
+      if (voiceModeActiveRef.current) startVoiceModeTurn();
+      return;
+    }
+    try {
+      const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
+      const submitRes = await fetch("/api/voice/submit", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ prompt: clean, voice_id: VOICE_MODE_TTS_VOICE }),
+      });
+      const submitData = await submitRes.json();
+      if (!submitRes.ok) {
+        setVoiceModeError(submitData.error || "Couldn't speak the reply.");
+        if (voiceModeActiveRef.current) startVoiceModeTurn();
+        return;
+      }
+
+      const pollHeaders = await authHeaders();
+      let url: string | null = null;
+      for (let attempt = 0; attempt < VOICE_MODE_MAX_POLL_ATTEMPTS; attempt++) {
+        await new Promise((r) => setTimeout(r, VOICE_MODE_POLL_MS));
+        if (!voiceModeActiveRef.current) return;
+        const res = await fetch(`/api/voice/result?id=${encodeURIComponent(submitData.requestId)}`, {
+          headers: pollHeaders,
+        });
+        const data = await res.json();
+        if (!res.ok || data.status === "failed") {
+          setVoiceModeError(data.error || "Couldn't speak the reply.");
+          break;
+        }
+        if (data.status === "done") {
+          url = data.url;
+          break;
+        }
+      }
+
+      if (!voiceModeActiveRef.current) return;
+      if (!url) {
+        if (voiceModeActiveRef.current) startVoiceModeTurn();
+        return;
+      }
+
+      setVoiceModePhase("speaking");
+      const audio = new Audio(url);
+      voiceModeAudioRef.current = audio;
+      audio.onended = () => {
+        if (voiceModeActiveRef.current) startVoiceModeTurn();
+      };
+      audio.onerror = () => {
+        if (voiceModeActiveRef.current) startVoiceModeTurn();
+      };
+      await audio.play();
+    } catch (e: any) {
+      setVoiceModeError(e?.message || "Couldn't speak the reply.");
+      if (voiceModeActiveRef.current) startVoiceModeTurn();
+    }
+  };
+
+  // Once the assistant finishes streaming a reply we triggered, speak it.
+  useEffect(() => {
+    if (!voiceModeActive || !voiceModeWaitingForReplyRef.current || streaming) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant") return;
+    voiceModeWaitingForReplyRef.current = false;
+    speakReply(last.content);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streaming, voiceModeActive, messages]);
+
+  const startVoiceMode = () => {
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) {
+      setVoiceSupported(false);
+      return;
+    }
+    setVoiceModeActive(true);
+    voiceModeActiveRef.current = true;
+    startVoiceModeTurn();
+  };
+
+  const endVoiceMode = () => {
+    voiceModeActiveRef.current = false;
+    setVoiceModeActive(false);
+    voiceModeWaitingForReplyRef.current = false;
+    voiceModeRecognitionRef.current?.stop();
+    voiceModeRecognitionRef.current = null;
+    voiceModeAudioRef.current?.pause();
+    voiceModeAudioRef.current = null;
+    setVoiceModeTranscript("");
+    setVoiceModeError(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      voiceModeRecognitionRef.current?.stop();
+      voiceModeAudioRef.current?.pause();
+    };
+  }, []);
 
   const autoGrow = () => {
     const ta = taRef.current;
@@ -302,13 +497,22 @@ export default function Composer({
               <Square size={16} fill="black" />
             </button>
           ) : !text.trim() && attachments.length === 0 && voiceSupported ? (
-            <button
-              onClick={() => setShowVoiceModal(true)}
-              className="rounded-full p-2 text-gray-300 hover:bg-white/10"
-              aria-label="Voice input"
-            >
-              <Mic size={20} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowVoiceModal(true)}
+                className="rounded-full p-2 text-gray-300 hover:bg-white/10"
+                aria-label="Voice input"
+              >
+                <Mic size={20} />
+              </button>
+              <button
+                onClick={startVoiceMode}
+                className="rounded-full bg-white p-2 text-black hover:opacity-90"
+                aria-label="Voice mode"
+              >
+                <AudioLines size={20} />
+              </button>
+            </div>
           ) : (
             <button
               onClick={submit}
@@ -332,6 +536,15 @@ export default function Composer({
           onLanguageChange={setVoiceLang}
           onClose={() => setShowVoiceModal(false)}
           onContinue={beginVoiceInput}
+        />
+      )}
+
+      {voiceModeActive && (
+        <VoiceModeOverlay
+          phase={voiceModePhase}
+          transcript={voiceModePhase === "listening" ? voiceModeTranscript : ""}
+          error={voiceModeError}
+          onEnd={endVoiceMode}
         />
       )}
     </div>

@@ -167,6 +167,30 @@ body {
   0%, 80%, 100% { opacity: 0.25; }
   40% { opacity: 1; }
 }
+
+/* Voice mode logo animation -- differs per phase (listening/thinking/speaking) */
+@keyframes voice-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+@keyframes voice-speak {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.06) rotate(-3deg); }
+  50% { transform: scale(0.97) rotate(0deg); }
+  75% { transform: scale(1.06) rotate(3deg); }
+}
+@keyframes voice-spin {
+  to { transform: rotate(360deg); }
+}
+.voice-logo-listening {
+  animation: voice-breathe 2.2s ease-in-out infinite;
+}
+.voice-logo-thinking {
+  animation: voice-spin 1.6s linear infinite;
+}
+.voice-logo-speaking {
+  animation: voice-speak 1.1s ease-in-out infinite;
+}
 .typing-dot {
   width: 7px;
   height: 7px;

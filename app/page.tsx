@@ -546,6 +546,7 @@ export default function Home() {
                   webSearch={webSearch}
                   onToggleWebSearch={handleToggleWebSearch}
                   searchesLeft={searchesLeft}
+                  messages={messages}
                 />
               </div>
               <div className="mt-2 flex flex-wrap justify-center gap-2 md:gap-3">
@@ -591,6 +592,7 @@ export default function Home() {
             webSearch={webSearch}
             onToggleWebSearch={handleToggleWebSearch}
             searchesLeft={searchesLeft}
+            messages={messages}
           />
         )}
 

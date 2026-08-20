@@ -1,11 +1,15 @@
 import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
 import { muapiSubmit } from "@/lib/muapi";
+import { checkAndIncrementUsage, VIDEO_MONTHLY_LIMIT } from "@/lib/generationUsage";
 
 // Video generation via Muapi.ai's Wan 2.1 (Alibaba) text-to-video model.
 // Unlike image generation, this can take minutes -- longer than a serverless
 // function should hold a connection open -- so this route only submits the
 // job and returns a request_id; the client polls /api/video/result.
+//
+// duration is capped at 10s by DURATIONS below -- there is no path to
+// request anything longer.
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -26,6 +30,16 @@ export async function POST(req: NextRequest) {
   const auth = await requireProUser(req);
   if (!auth.ok) {
     return jsonError(auth.error, auth.status);
+  }
+
+  if (!auth.isAdmin) {
+    const usage = await checkAndIncrementUsage(auth.userId, "video", VIDEO_MONTHLY_LIMIT);
+    if (!usage.ok) {
+      return jsonError(
+        `You've reached this month's limit of ${VIDEO_MONTHLY_LIMIT} videos. It resets at the start of next month.`,
+        429
+      );
+    }
   }
 
   const key = process.env.MUAPI_KEY;

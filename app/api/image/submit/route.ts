@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
 import { muapiSubmit, muapiOutputUrl } from "@/lib/muapi";
+import { checkAndIncrementUsage, IMAGE_MONTHLY_LIMIT } from "@/lib/generationUsage";
 
 // Image generation via Muapi.ai's "Nano Banana" (Google) model. Split into
 // submit/result (like video) instead of polling inline: real-world latency
@@ -24,6 +25,16 @@ export async function POST(req: NextRequest) {
   const auth = await requireProUser(req);
   if (!auth.ok) {
     return jsonError(auth.error, auth.status);
+  }
+
+  if (!auth.isAdmin) {
+    const usage = await checkAndIncrementUsage(auth.userId, "image", IMAGE_MONTHLY_LIMIT);
+    if (!usage.ok) {
+      return jsonError(
+        `You've reached this month's limit of ${IMAGE_MONTHLY_LIMIT} images. It resets at the start of next month.`,
+        429
+      );
+    }
   }
 
   const key = process.env.MUAPI_KEY;

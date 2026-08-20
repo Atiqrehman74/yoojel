@@ -1,7 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest } from "next/server";
 
-type ProGateResult = { ok: true; userId: string } | { ok: false; status: number; error: string };
+type ProGateResult =
+  | { ok: true; userId: string; isAdmin: boolean }
+  | { ok: false; status: number; error: string };
 
 // Shared by every generation route (image, video, ...): resolves the caller
 // from their Supabase session token and requires plan === 'pro' (or admin).
@@ -32,5 +34,5 @@ export async function requireProUser(req: NextRequest): Promise<ProGateResult> {
     return { ok: false, status: 403, error: "This is a Pro feature. Subscribe to Yoojel Pro to unlock it." };
   }
 
-  return { ok: true, userId: user.id };
+  return { ok: true, userId: user.id, isAdmin: !!profile.is_admin };
 }

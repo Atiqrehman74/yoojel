@@ -2,17 +2,26 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { DEFAULT_MODEL, isValidModel, MODELS } from "@/lib/models";
 import type { ChatRequest } from "@/lib/types";
+import { currentDateLine } from "@/lib/currentDate";
 import { streamRoutesme } from "./routesme";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const SYSTEM_PROMPT = `You are Yoojel, a helpful, friendly AI assistant for yoojel.com.
+// Built fresh per request (not a module-level constant) so a long-lived
+// warm serverless instance never bakes in a stale date.
+function buildSystemPrompt(): string {
+  return `You are Yoojel, a helpful, friendly AI assistant for yoojel.com.
 You can write and edit text, answer questions, analyze images the user uploads,
 explain concepts, write and debug code, and—when web search is enabled—look up
 current information from the internet and cite your sources.
 Be clear, accurate, and concise. Use Markdown for formatting and fenced code
-blocks (with a language tag) for code. If you are unsure, say so.`;
+blocks (with a language tag) for code. If you are unsure, say so.
+
+${currentDateLine()} Use this as the current date/time whenever asked about
+"today," "this week," recent events, or anything else time-relative — never
+guess or rely on your training data for the current date.`;
+}
 
 export async function POST(req: NextRequest) {
   let body: ChatRequest;
@@ -30,7 +39,7 @@ export async function POST(req: NextRequest) {
   const modelInfo = MODELS.find((m) => m.id === model);
 
   if (modelInfo?.provider === "routesme") {
-    return streamRoutesme(model, body, SYSTEM_PROMPT);
+    return streamRoutesme(model, body, buildSystemPrompt());
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -77,7 +86,7 @@ export async function POST(req: NextRequest) {
         const claudeStream = anthropic.messages.stream({
           model,
           max_tokens: 4096,
-          system: SYSTEM_PROMPT,
+          system: buildSystemPrompt(),
           messages,
           ...(tools ? { tools } : {}),
         });

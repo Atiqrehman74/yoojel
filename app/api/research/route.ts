@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
+import { currentDateLine } from "@/lib/currentDate";
 
 // ============================================================
 //  DEEP RESEARCH  (Apps -> Deep Research)
@@ -22,7 +23,8 @@ const DEPTH_CONFIG = {
 
 type Depth = keyof typeof DEPTH_CONFIG;
 
-const SYSTEM_PROMPT = `You are Yoojel's Deep Research assistant. Given a topic or
+function buildSystemPrompt(): string {
+  return `You are Yoojel's Deep Research assistant. Given a topic or
 question, research it thoroughly using web search across multiple queries and
 angles before answering. Then write a well-structured report in Markdown:
 
@@ -31,7 +33,12 @@ angles before answering. Then write a well-structured report in Markdown:
 - Cite claims inline like [1], [2] tied to the sources you found.
 - End with a "## Open questions" section noting anything unresolved or contested.
 
-Be thorough, accurate, and neutral. If sources disagree, say so explicitly.`;
+Be thorough, accurate, and neutral. If sources disagree, say so explicitly.
+
+${currentDateLine()} Use this to correctly interpret "latest," "this year,"
+"recent," and other time-relative language in the topic — never rely on your
+training data for the current date.`;
+}
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -75,7 +82,7 @@ export async function POST(req: NextRequest) {
         const claudeStream = anthropic.messages.stream({
           model,
           max_tokens: maxTokens,
-          system: SYSTEM_PROMPT,
+          system: buildSystemPrompt(),
           messages: [{ role: "user", content: `Research topic: ${topic}` }],
           tools: [{ type: "web_search_20250305", name: "web_search", max_uses: maxUses } as any],
         });

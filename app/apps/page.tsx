@@ -40,11 +40,11 @@ const apps = [
     available: true,
   },
   {
-    href: null,
+    href: "/apps/voice-studio",
     icon: Mic,
     name: "Voice Studio",
     description: "Text-to-speech and audio generation.",
-    available: false,
+    available: true,
   },
 ];
 

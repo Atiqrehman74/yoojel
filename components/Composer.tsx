@@ -68,18 +68,22 @@ export default function Composer({
     recognition.lang = voiceLang;
     recognition.continuous = true;
     recognition.interimResults = true;
+    const baseText = textBeforeListeningRef.current;
     recognition.onresult = (e: any) => {
-      let finalChunk = "";
-      let interimChunk = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      // Rebuild from the full results array every time rather than
+      // incrementally appending via e.resultIndex -- some engines (notably
+      // Android WebView) don't reliably mark only *new* entries there, and
+      // re-delivering an already-finalized segment caused it to get
+      // appended again on every event, producing runaway repeated text.
+      let final = "";
+      let interim = "";
+      for (let i = 0; i < e.results.length; i++) {
         const result = e.results[i];
-        if (result.isFinal) finalChunk += result[0].transcript;
-        else interimChunk += result[0].transcript;
+        if (result.isFinal) final += result[0].transcript;
+        else interim += result[0].transcript;
       }
-      if (finalChunk) {
-        setText((prev) => (prev ? `${prev} ${finalChunk}` : finalChunk).trim());
-      }
-      setInterimText(interimChunk);
+      setText((baseText ? `${baseText} ${final}` : final).trim());
+      setInterimText(interim);
     };
     recognition.onerror = () => {
       setListening(false);

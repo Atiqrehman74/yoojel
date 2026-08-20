@@ -78,13 +78,20 @@ export function useVoiceMode({
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.onresult = (e: any) => {
-      let interimChunk = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      // Rebuild from the full results array every time rather than
+      // incrementally appending via e.resultIndex -- some engines (notably
+      // Android WebView) don't reliably mark only *new* entries there, and
+      // re-delivering an already-finalized segment caused it to get
+      // appended again on every event, producing runaway repeated text.
+      let final = "";
+      let interim = "";
+      for (let i = 0; i < e.results.length; i++) {
         const result = e.results[i];
-        if (result.isFinal) finalTranscript += result[0].transcript;
-        else interimChunk += result[0].transcript;
+        if (result.isFinal) final += result[0].transcript;
+        else interim += result[0].transcript;
       }
-      setTranscript(finalTranscript + interimChunk);
+      finalTranscript = final;
+      setTranscript(final + interim);
     };
     recognition.onerror = (e: any) => {
       if (e?.error === "no-speech" || e?.error === "aborted") return;

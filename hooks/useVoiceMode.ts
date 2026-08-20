@@ -101,25 +101,34 @@ export function useVoiceMode({
     setTranscript("");
     setError(null);
     let finalTranscript = "";
+    let lastCommittedIndex = -1;
     const recognition = new Ctor();
     recognition.lang = currentLang();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.onresult = (e: any) => {
-      // Rebuild from the full results array every time rather than
-      // incrementally appending via e.resultIndex -- some engines (notably
-      // Android WebView) don't reliably mark only *new* entries there, and
-      // re-delivering an already-finalized segment caused it to get
-      // appended again on every event, producing runaway repeated text.
-      let final = "";
-      let interim = "";
-      for (let i = 0; i < e.results.length; i++) {
-        const result = e.results[i];
-        if (result.isFinal) final += result[0].transcript;
-        else interim += result[0].transcript;
+      // Only ever trust the LAST entry in e.results, and commit a final
+      // result exactly once per index. Summing across all entries assumed
+      // each index holds distinct, non-overlapping text -- on some Android
+      // engines, entries instead hold cumulative, overlapping snapshots of
+      // the same growing utterance ("give" -> "give me" -> "give me
+      // detail"), so summing them compounded the duplication instead of
+      // fixing it.
+      const results = e.results;
+      if (!results || results.length === 0) return;
+      const lastIdx = results.length - 1;
+      const lastResult = results[lastIdx];
+      const lastText: string = lastResult[0]?.transcript ?? "";
+
+      if (lastResult.isFinal) {
+        if (lastIdx > lastCommittedIndex) {
+          lastCommittedIndex = lastIdx;
+          finalTranscript = finalTranscript ? `${finalTranscript} ${lastText}` : lastText;
+        }
+        setTranscript(finalTranscript);
+      } else {
+        setTranscript(finalTranscript ? `${finalTranscript} ${lastText}` : lastText);
       }
-      finalTranscript = final;
-      setTranscript(final + interim);
     };
     recognition.onerror = (e: any) => {
       if (e?.error === "no-speech" || e?.error === "aborted") return;

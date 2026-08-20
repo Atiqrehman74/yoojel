@@ -5,11 +5,16 @@
 
 const RESEND_FROM = process.env.RESEND_FROM || "Yoojel Leads <onboarding@resend.dev>";
 
-export async function sendNotificationEmail(opts: { to: string; subject: string; html: string }): Promise<boolean> {
+export async function sendNotificationEmail(opts: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<{ ok: boolean; error?: string }> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
-    console.error("sendNotificationEmail: RESEND_API_KEY not set, skipping email for:", opts.subject);
-    return false;
+    const msg = "RESEND_API_KEY not set";
+    console.error("sendNotificationEmail:", msg, "skipping email for:", opts.subject);
+    return { ok: false, error: msg };
   }
 
   try {
@@ -29,12 +34,12 @@ export async function sendNotificationEmail(opts: { to: string; subject: string;
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       console.error("sendNotificationEmail failed:", res.status, body);
-      return false;
+      return { ok: false, error: `${res.status} ${body}`.slice(0, 300) };
     }
-    return true;
+    return { ok: true };
   } catch (err) {
     console.error("sendNotificationEmail error:", err);
-    return false;
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 

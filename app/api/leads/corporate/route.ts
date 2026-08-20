@@ -47,8 +47,9 @@ export async function POST(req: NextRequest) {
   // hiccup shouldn't turn into a failed submission for the user. Awaited
   // (not fire-and-forget) since a serverless function can be frozen the
   // instant the response is sent, killing any un-awaited work in flight.
+  let emailResult: { ok: boolean; error?: string } = { ok: false, error: "not attempted" };
   try {
-    await sendNotificationEmail({
+    emailResult = await sendNotificationEmail({
       to: NOTIFY_EMAIL,
       subject: `New Yoojel Corporate lead: ${body.companyName || fullName}`,
       html: renderLeadEmailHtml("New Yoojel Corporate early-access request", [
@@ -67,9 +68,11 @@ export async function POST(req: NextRequest) {
         ["Requirements", body.requirements],
       ]),
     });
-  } catch {
-    // already logged inside sendNotificationEmail
+  } catch (e) {
+    emailResult = { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 
-  return NextResponse.json({ ok: true });
+  // TEMP DEBUG: surfacing emailDebug in the response to diagnose why
+  // production isn't sending while local dev does. Remove once confirmed.
+  return NextResponse.json({ ok: true, emailDebug: emailResult });
 }

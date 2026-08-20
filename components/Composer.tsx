@@ -344,6 +344,7 @@ export default function Composer({
           transcript={voiceMode.phase === "listening" ? voiceMode.transcript : ""}
           error={voiceMode.error}
           onEnd={voiceMode.end}
+          onInterrupt={voiceMode.interrupt}
         />
       )}
     </div>

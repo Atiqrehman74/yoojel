@@ -27,17 +27,25 @@ export default function VoiceModeOverlay({
   transcript,
   error,
   onEnd,
+  onInterrupt,
 }: {
   phase: VoiceModePhase;
   transcript: string;
   error: string | null;
   onEnd: () => void;
+  onInterrupt: () => void;
 }) {
+  const interruptible = phase === "speaking";
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-main px-6 py-16">
       <div className="flex flex-1 flex-col items-center justify-center gap-8">
-        <div
-          className={`flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-br ${PHASE_RING[phase]}`}
+        <button
+          onClick={interruptible ? onInterrupt : undefined}
+          disabled={!interruptible}
+          aria-label={interruptible ? "Interrupt and speak" : undefined}
+          className={`flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-br ${PHASE_RING[phase]} ${
+            interruptible ? "cursor-pointer" : "cursor-default"
+          }`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -45,8 +53,11 @@ export default function VoiceModeOverlay({
             alt=""
             className={`h-24 w-24 object-contain ${PHASE_LOGO_CLASS[phase]}`}
           />
-        </div>
+        </button>
         <p className="text-lg font-medium text-gray-200">{PHASE_LABEL[phase]}</p>
+        {interruptible && (
+          <p className="-mt-4 text-xs text-gray-500">Tap to interrupt</p>
+        )}
         {transcript && (
           <p className="max-w-md text-center text-sm text-gray-400">{transcript}</p>
         )}

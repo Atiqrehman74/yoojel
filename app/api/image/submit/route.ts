@@ -1,13 +1,14 @@
 import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
-import { muapiSubmit, muapiPoll, muapiOutputUrl } from "@/lib/muapi";
+import { muapiSubmit, muapiOutputUrl } from "@/lib/muapi";
 
-// Image generation via Muapi.ai's "Nano Banana" (Google) model — simple
-// prompt + aspect_ratio schema, fast enough to submit-and-poll within one
-// request (unlike video, which needs the client-driven flow in /api/video).
+// Image generation via Muapi.ai's "Nano Banana" (Google) model. Split into
+// submit/result (like video) instead of polling inline: real-world latency
+// observed here was ~90-110s, well past what a serverless function should
+// hold a connection open for, so the client polls /api/image/result itself.
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 const MODEL_ENDPOINT = "nano-banana";
 const ASPECT_RATIOS = new Set(["1:1", "9:16", "16:9"]);
@@ -43,28 +44,17 @@ export async function POST(req: NextRequest) {
     // Some models can respond synchronously with no request_id.
     if (!requestId) {
       const url = muapiOutputUrl(submitted as any);
-      return new Response(JSON.stringify({ url }), {
+      return new Response(JSON.stringify({ done: true, url }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    for (let attempt = 0; attempt < 25; attempt++) {
-      await new Promise((r) => setTimeout(r, 2000));
-      const result = await muapiPoll(requestId, key);
-      const status = result.status?.toLowerCase();
-      if (status === "completed" || status === "succeeded" || status === "success") {
-        return new Response(JSON.stringify({ url: muapiOutputUrl(result) }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      if (status === "failed" || status === "error") {
-        return jsonError(result.error || "Image generation failed.", 502);
-      }
-    }
-    return jsonError("Image generation timed out.", 504);
+    return new Response(JSON.stringify({ requestId }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (err: any) {
-    return jsonError(err?.message || "Image generation failed.", 500);
+    return jsonError(err?.message || "Image generation failed to start.", 500);
   }
 }

@@ -194,23 +194,7 @@ export default function Home() {
       )
     );
     setStreaming(true);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      const res = await fetch("/api/image", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ prompt }),
-      });
-      const data = await res.json();
-      const content = !res.ok
-        ? `⚠️ ${data.error}`
-        : data.url
-        ? `![generated image](${data.url})`
-        : "No image returned.";
+    const setAiContent = (content: string) => {
       setConversations((prev) =>
         prev.map((c) =>
           c.id === convoId
@@ -223,6 +207,47 @@ export default function Home() {
             : c
         )
       );
+    };
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const submitRes = await fetch("/api/image/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader },
+        body: JSON.stringify({ prompt }),
+      });
+      const submitData = await submitRes.json();
+      if (!submitRes.ok) {
+        setAiContent(`⚠️ ${submitData.error}`);
+        return;
+      }
+      if (submitData.done) {
+        setAiContent(submitData.url ? `![generated image](${submitData.url})` : "No image returned.");
+        return;
+      }
+
+      setAiContent("_Generating image…_");
+      for (let attempt = 0; attempt < 90; attempt++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const res = await fetch(`/api/image/result?id=${encodeURIComponent(submitData.requestId)}`, {
+          headers: authHeader,
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setAiContent(`⚠️ ${data.error}`);
+          return;
+        }
+        if (data.status === "done") {
+          setAiContent(data.url ? `![generated image](${data.url})` : "No image returned.");
+          return;
+        }
+        if (data.status === "failed") {
+          setAiContent(`⚠️ ${data.error || "Image generation failed."}`);
+          return;
+        }
+      }
+      setAiContent("⚠️ Image generation timed out.");
     } finally {
       setStreaming(false);
       setImageMode(false);

@@ -19,6 +19,9 @@ type Generation = {
   src: string;
 };
 
+const POLL_INTERVAL_MS = 2000;
+const MAX_POLL_ATTEMPTS = 90; // ~3 minutes
+
 export default function ImageStudioPage() {
   const [prompt, setPrompt] = useState("");
   const [aspectRatio, setAspectRatio] = useState<SizeOption["value"]>("1:1");
@@ -27,34 +30,70 @@ export default function ImageStudioPage() {
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [active, setActive] = useState<Generation | null>(null);
 
+  const authHeaders = async (): Promise<Record<string, string>> => {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   const generate = async () => {
     if (!prompt.trim() || loading) return;
     setLoading(true);
     setError("");
     try {
-      const supabase = createClient();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      const res = await fetch("/api/image", {
+      const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
+      const submitRes = await fetch("/api/image/submit", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers,
         body: JSON.stringify({ prompt, aspect_ratio: aspectRatio }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Image generation failed.");
+      const submitData = await submitRes.json();
+      if (!submitRes.ok) {
+        setError(submitData.error || "Image generation failed.");
         return;
       }
-      if (!data.url) {
-        setError("No image returned.");
+
+      const finish = (url: string) => {
+        const gen: Generation = { id: `${Date.now()}`, prompt, src: url };
+        setGenerations((prev) => [gen, ...prev]);
+        setActive(gen);
+      };
+
+      if (submitData.done) {
+        if (!submitData.url) {
+          setError("No image returned.");
+          return;
+        }
+        finish(submitData.url);
         return;
       }
-      const gen: Generation = { id: `${Date.now()}`, prompt, src: data.url };
-      setGenerations((prev) => [gen, ...prev]);
-      setActive(gen);
+
+      const pollHeaders = await authHeaders();
+      for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+        const res = await fetch(`/api/image/result?id=${encodeURIComponent(submitData.requestId)}`, {
+          headers: pollHeaders,
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || "Image generation failed.");
+          return;
+        }
+        if (data.status === "done") {
+          if (!data.url) {
+            setError("No image returned.");
+            return;
+          }
+          finish(data.url);
+          return;
+        }
+        if (data.status === "failed") {
+          setError(data.error || "Image generation failed.");
+          return;
+        }
+      }
+      setError("Image generation timed out.");
     } catch (e: any) {
       setError(e?.message || "Image generation failed.");
     } finally {

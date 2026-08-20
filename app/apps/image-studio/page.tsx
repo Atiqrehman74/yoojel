@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Download, ImageIcon, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase";
 
-type SizeOption = { label: string; value: "1024x1024" | "1024x1792" | "1792x1024" };
+type SizeOption = { label: string; value: "1024x1024" | "1024x1536" | "1536x1024" };
 
 const SIZES: SizeOption[] = [
   { label: "Square", value: "1024x1024" },
-  { label: "Portrait", value: "1024x1792" },
-  { label: "Landscape", value: "1792x1024" },
+  { label: "Portrait", value: "1024x1536" },
+  { label: "Landscape", value: "1536x1024" },
 ];
 
 type Generation = {
@@ -31,9 +32,15 @@ export default function ImageStudioPage() {
     setLoading(true);
     setError("");
     try {
+      const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
       const res = await fetch("/api/image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ prompt, size }),
       });
       const data = await res.json();

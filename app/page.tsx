@@ -125,7 +125,12 @@ export default function Home() {
   const handleUpgrade = async () => {
     setUpgrading(true);
     try {
-      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const { url } = await res.json();
       if (url) window.location.href = url;
     } finally {

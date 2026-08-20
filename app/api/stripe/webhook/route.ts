@@ -26,12 +26,20 @@ export async function POST(req: NextRequest) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
     const userId = session.metadata?.user_id
+    const email = session.customer_details?.email ?? session.customer_email ?? undefined
+    const update = {
+      plan: 'pro',
+      stripe_customer_id: session.customer as string,
+      stripe_subscription_id: session.subscription as string,
+    }
     if (userId) {
-      await supabase.from('profiles').update({
-        plan: 'pro',
-        stripe_customer_id: session.customer as string,
-        stripe_subscription_id: session.subscription as string,
-      }).eq('id', userId)
+      const { error } = await supabase.from('profiles').update(update).eq('id', userId)
+      if (error) console.error('Stripe webhook: failed to upgrade by user_id', userId, error)
+    } else if (email) {
+      const { error } = await supabase.from('profiles').update(update).eq('email', email)
+      if (error) console.error('Stripe webhook: failed to upgrade by email fallback', email, error)
+    } else {
+      console.error('Stripe webhook: checkout.session.completed has no user_id metadata and no email — cannot upgrade', session.id)
     }
   }
 

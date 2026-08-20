@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await sendNotificationEmail({
+    const emailResult = await sendNotificationEmail({
       to: NOTIFY_EMAIL,
       subject: `New Yoojel MovieMaker submission: ${body.projectTitle || fullName}`,
       html: renderLeadEmailHtml("New Yoojel MovieMaker project submission", [
@@ -64,6 +64,9 @@ export async function POST(req: NextRequest) {
         ["Description", body.description],
       ]),
     });
+    if (!emailResult.ok) {
+      console.error("moviemaker submission notification email failed:", emailResult.error);
+    }
   } catch {
     // already logged inside sendNotificationEmail
   }

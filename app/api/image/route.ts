@@ -1,12 +1,16 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { requireProUser } from "@/lib/requireProUser";
+import { muapiSubmit, muapiPoll, muapiOutputUrl } from "@/lib/muapi";
 
-// ============================================================
-//  IMAGE GENERATION — OpenAI gpt-image-1, gated to Pro accounts
-// ============================================================
+// Image generation via Muapi.ai's "Nano Banana" (Google) model — simple
+// prompt + aspect_ratio schema, fast enough to submit-and-poll within one
+// request (unlike video, which needs the client-driven flow in /api/video).
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+const MODEL_ENDPOINT = "nano-banana";
+const ASPECT_RATIOS = new Set(["1:1", "9:16", "16:9"]);
 
 function jsonError(message: string, status: number) {
   return new Response(JSON.stringify({ error: message }), {
@@ -16,72 +20,50 @@ function jsonError(message: string, status: number) {
 }
 
 export async function POST(req: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const token = req.headers.get("authorization")?.replace("Bearer ", "");
-
-  if (!supabaseUrl || !serviceKey || !token) {
-    return jsonError("Sign in to use Image Studio.", 401);
+  const auth = await requireProUser(req);
+  if (!auth.ok) {
+    return jsonError(auth.error, auth.status);
   }
 
-  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-  const {
-    data: { user },
-  } = await admin.auth.getUser(token);
-  if (!user) {
-    return jsonError("Sign in to use Image Studio.", 401);
-  }
-
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("plan, is_admin")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || (profile.plan !== "pro" && !profile.is_admin)) {
-    return jsonError("Image generation is a Pro feature. Subscribe to Yoojel Pro to unlock it.", 403);
-  }
-
-  const key = process.env.IMAGE_API_KEY;
+  const key = process.env.MUAPI_KEY;
   if (!key) {
     return jsonError("Image generation isn't configured yet — contact support.", 500);
   }
 
-  const { prompt, size } = await req.json();
+  const { prompt, aspect_ratio } = await req.json();
   if (!prompt) {
     return jsonError("Missing prompt.", 400);
   }
-
-  // gpt-image-1's supported sizes (not DALL-E 3's 1024x1792/1792x1024).
-  const ALLOWED_SIZES = ["1024x1024", "1024x1536", "1536x1024"];
-  const imageSize = ALLOWED_SIZES.includes(size) ? size : "1024x1024";
+  const ratio = ASPECT_RATIOS.has(aspect_ratio) ? aspect_ratio : "1:1";
 
   try {
-    const res = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-image-1",
-        prompt,
-        size: imageSize,
-        n: 1,
-      }),
-    });
+    const submitted = await muapiSubmit(MODEL_ENDPOINT, { prompt, aspect_ratio: ratio }, key);
+    const requestId = submitted.request_id || submitted.id;
 
-    const data = await res.json();
-    if (!res.ok) {
-      return jsonError(data?.error?.message || "Image API error.", 502);
+    // Some models can respond synchronously with no request_id.
+    if (!requestId) {
+      const url = muapiOutputUrl(submitted as any);
+      return new Response(JSON.stringify({ url }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // gpt-image-1 only returns b64_json, never a url.
-    const item = data?.data?.[0] || {};
-    return new Response(JSON.stringify({ url: item.url, b64: item.b64_json }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    for (let attempt = 0; attempt < 25; attempt++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const result = await muapiPoll(requestId, key);
+      const status = result.status?.toLowerCase();
+      if (status === "completed" || status === "succeeded" || status === "success") {
+        return new Response(JSON.stringify({ url: muapiOutputUrl(result) }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (status === "failed" || status === "error") {
+        return jsonError(result.error || "Image generation failed.", 502);
+      }
+    }
+    return jsonError("Image generation timed out.", 504);
   } catch (err: any) {
     return jsonError(err?.message || "Image generation failed.", 500);
   }

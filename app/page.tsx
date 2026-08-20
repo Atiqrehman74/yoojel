@@ -195,9 +195,14 @@ export default function Home() {
     );
     setStreaming(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
       const res = await fetch("/api/image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
@@ -205,8 +210,6 @@ export default function Home() {
         ? `⚠️ ${data.error}`
         : data.url
         ? `![generated image](${data.url})`
-        : data.b64
-        ? `![generated image](data:image/png;base64,${data.b64})`
         : "No image returned.";
       setConversations((prev) =>
         prev.map((c) =>

@@ -19,11 +19,11 @@ const apps = [
     available: true,
   },
   {
-    href: null,
+    href: "/apps/video-studio",
     icon: Video,
     name: "Video Studio",
     description: "Text-to-video generation.",
-    available: false,
+    available: true,
   },
   {
     href: null,

@@ -5,23 +5,23 @@ import Link from "next/link";
 import { ArrowLeft, Download, ImageIcon, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
-type SizeOption = { label: string; value: "1024x1024" | "1024x1536" | "1536x1024" };
+type SizeOption = { label: string; value: "1:1" | "9:16" | "16:9" };
 
 const SIZES: SizeOption[] = [
-  { label: "Square", value: "1024x1024" },
-  { label: "Portrait", value: "1024x1536" },
-  { label: "Landscape", value: "1536x1024" },
+  { label: "Square", value: "1:1" },
+  { label: "Portrait", value: "9:16" },
+  { label: "Landscape", value: "16:9" },
 ];
 
 type Generation = {
   id: string;
   prompt: string;
-  src: string; // url or data: URI
+  src: string;
 };
 
 export default function ImageStudioPage() {
   const [prompt, setPrompt] = useState("");
-  const [size, setSize] = useState<SizeOption["value"]>("1024x1024");
+  const [aspectRatio, setAspectRatio] = useState<SizeOption["value"]>("1:1");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [generations, setGenerations] = useState<Generation[]>([]);
@@ -41,19 +41,18 @@ export default function ImageStudioPage() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ prompt, size }),
+        body: JSON.stringify({ prompt, aspect_ratio: aspectRatio }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Image generation failed.");
         return;
       }
-      const src = data.url || (data.b64 ? `data:image/png;base64,${data.b64}` : "");
-      if (!src) {
+      if (!data.url) {
         setError("No image returned.");
         return;
       }
-      const gen: Generation = { id: `${Date.now()}`, prompt, src };
+      const gen: Generation = { id: `${Date.now()}`, prompt, src: data.url };
       setGenerations((prev) => [gen, ...prev]);
       setActive(gen);
     } catch (e: any) {
@@ -97,9 +96,9 @@ export default function ImageStudioPage() {
               {SIZES.map((s) => (
                 <button
                   key={s.value}
-                  onClick={() => setSize(s.value)}
+                  onClick={() => setAspectRatio(s.value)}
                   className={`rounded-md px-2.5 py-1 text-xs ${
-                    size === s.value ? "bg-white/15 text-white" : "text-gray-400 hover:text-gray-200"
+                    aspectRatio === s.value ? "bg-white/15 text-white" : "text-gray-400 hover:text-gray-200"
                   }`}
                 >
                   {s.label}

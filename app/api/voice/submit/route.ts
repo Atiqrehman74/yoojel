@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
 import { muapiSubmit } from "@/lib/muapi";
+import { checkAndIncrementUsage, VOICE_MONTHLY_LIMIT } from "@/lib/generationUsage";
 
 // Text-to-speech via Muapi.ai's Minimax Speech 2.6 HD model. Same
 // submit/result split as video: TTS on a long passage can take a while,
@@ -44,6 +45,16 @@ export async function POST(req: NextRequest) {
   const auth = await requireProUser(req);
   if (!auth.ok) {
     return jsonError(auth.error, auth.status);
+  }
+
+  if (!auth.isAdmin) {
+    const usage = await checkAndIncrementUsage(auth.userId, "voice", VOICE_MONTHLY_LIMIT);
+    if (!usage.ok) {
+      return jsonError(
+        `You've reached this month's limit of ${VOICE_MONTHLY_LIMIT} voice generations. It resets at the start of next month.`,
+        429
+      );
+    }
   }
 
   const key = process.env.MUAPI_KEY;

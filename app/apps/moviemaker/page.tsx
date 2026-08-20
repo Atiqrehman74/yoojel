@@ -110,10 +110,7 @@ export default function MovieMakerPage() {
         >
           <Clapperboard size={26} />
         </div>
-        <span className="mt-6 inline-block rounded-full border border-white/15 px-3 py-1 text-[11px] font-medium tracking-wide text-gray-400">
-          COMING SOON
-        </span>
-        <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Yoojel MovieMaker</h2>
+        <h2 className="mt-6 text-3xl font-bold sm:text-4xl">Yoojel MovieMaker</h2>
         <p className="mt-2 text-lg text-gray-400">Your Story. Your Vision. Your Movie.</p>
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-gray-400">
           Yoojel MovieMaker is a next-generation AI-powered movie creation platform built to

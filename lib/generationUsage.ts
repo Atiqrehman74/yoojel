@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export const IMAGE_MONTHLY_LIMIT = 20;
 export const VIDEO_MONTHLY_LIMIT = 5;
+export const VOICE_MONTHLY_LIMIT = 15;
 
 // Calls the increment_generation_usage() Postgres function (see
 // supabase/sql/2026-08-21-generation-usage-limits.sql), which atomically
@@ -10,7 +11,7 @@ export const VIDEO_MONTHLY_LIMIT = 5;
 // Returns { ok: true, count } or { ok: false } if the limit was reached.
 export async function checkAndIncrementUsage(
   userId: string,
-  kind: "image" | "video",
+  kind: "image" | "video" | "voice",
   limit: number
 ): Promise<{ ok: true; count: number } | { ok: false }> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

@@ -94,10 +94,7 @@ export default function CorporatePage() {
         >
           <Building2 size={26} />
         </div>
-        <span className="mt-6 inline-block rounded-full border border-white/15 px-3 py-1 text-[11px] font-medium tracking-wide text-gray-400">
-          COMING SOON
-        </span>
-        <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Yoojel Corporate</h2>
+        <h2 className="mt-6 text-3xl font-bold sm:text-4xl">Yoojel Corporate</h2>
         <p className="mt-2 text-lg text-gray-400">Redefining the Future of Enterprise Intelligence</p>
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-gray-400">
           Yoojel Corporate is coming soon, a next-generation AI-powered corporate ecosystem

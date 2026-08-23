@@ -2,15 +2,17 @@ import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
 
 // Yoojel Coder: single-turn code generation via api.b.ai (OpenAI-compatible
-// gateway, model gpt-5.2). Originally pointed at DeepSeek's own API, then
-// swapped here on request -- both deepseek-harness and OmniRoute (the two
-// repos suggested as "the real backend") turned out to be local-only
-// tools with no hosted API, so a real hosted gateway is used instead.
+// gateway), model deepseek-v4-flash -- free on this gateway, unlike
+// gpt-5.2 which needed a deposit. Originally pointed at DeepSeek's own
+// API, then swapped to api.b.ai on request -- both deepseek-harness and
+// OmniRoute (the two repos suggested as "the real backend") turned out to
+// be local-only tools with no hosted API, so a real hosted gateway is
+// used instead.
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const BAI_MODEL = "gpt-5.2";
+const BAI_MODEL = "deepseek-v4-flash";
 const MAX_PROMPT_LENGTH = 4000;
 
 const SYSTEM_PROMPT = `You are Yoojel Coder, a code generation assistant. Given a request, write

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ImageIcon, Video, Mic, Search, Building2, Clapperboard } from "lucide-react";
+import { ArrowLeft, ImageIcon, Video, Mic, Search, Building2, Clapperboard, Code2 } from "lucide-react";
 
 const apps = [
   {
@@ -9,6 +9,13 @@ const apps = [
     icon: ImageIcon,
     name: "Image Studio",
     description: "Generate images from a text prompt.",
+    available: true,
+  },
+  {
+    href: "/apps/coder",
+    icon: Code2,
+    name: "Yoojel Coder",
+    description: "Generate code, copy or download as a ZIP.",
     available: true,
   },
   {

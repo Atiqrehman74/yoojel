@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ChevronDown,
   Check,
@@ -10,6 +11,7 @@ import {
   Globe,
   X,
   Crown,
+  Code2,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import MessageList from "@/components/MessageList";
@@ -582,6 +584,13 @@ export default function Home() {
                     setImageMode(false);
                   }}
                 />
+                <Link
+                  href="/apps/coder"
+                  className="flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-gray-200 hover:bg-hover md:px-4 md:py-2.5"
+                >
+                  <Code2 size={16} />
+                  Code
+                </Link>
               </div>
             </div>
           ) : (

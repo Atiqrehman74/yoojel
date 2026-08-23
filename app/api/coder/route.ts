@@ -1,16 +1,16 @@
 import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
 
-// Yoojel Coder: single-turn code generation via DeepSeek's real hosted API
-// (deepseek-harness itself -- the repo this was requested against -- is a
-// local-only CLI/web-UI tool with no HTTP API, so it can't be integrated
-// into this app; this calls DeepSeek's actual model API instead, which is
-// OpenAI-compatible).
+// Yoojel Coder: single-turn code generation via api.b.ai (OpenAI-compatible
+// gateway, model gpt-5.2). Originally pointed at DeepSeek's own API, then
+// swapped here on request -- both deepseek-harness and OmniRoute (the two
+// repos suggested as "the real backend") turned out to be local-only
+// tools with no hosted API, so a real hosted gateway is used instead.
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const DEEPSEEK_MODEL = "deepseek-v4-pro";
+const BAI_MODEL = "gpt-5.2";
 const MAX_PROMPT_LENGTH = 4000;
 
 const SYSTEM_PROMPT = `You are Yoojel Coder, a code generation assistant. Given a request, write
@@ -54,13 +54,45 @@ function jsonError(message: string, status: number) {
   });
 }
 
+// api.b.ai streams SSE ("data: {...}\n\n", terminated by "data: [DONE]").
+// Aggregated into the full text server-side so the response contract to
+// the client (a parsed {files} JSON) stays unchanged.
+async function consumeStream(res: Response): Promise<string> {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let full = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      const payload = trimmed.slice(5).trim();
+      if (payload === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(payload);
+        const delta = parsed?.choices?.[0]?.delta?.content;
+        if (typeof delta === "string") full += delta;
+      } catch {
+        // ignore malformed SSE chunks
+      }
+    }
+  }
+  return full;
+}
+
 export async function POST(req: NextRequest) {
   const auth = await requireProUser(req);
   if (!auth.ok) {
     return jsonError(auth.error, auth.status);
   }
 
-  const key = process.env.DEEPSEEK_API_KEY;
+  const key = process.env.BAI_API_KEY;
   if (!key) {
     return jsonError("Yoojel Coder isn't configured yet — contact support.", 500);
   }
@@ -74,27 +106,31 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const res = await fetch("https://api.deepseek.com/chat/completions", {
+    const res = await fetch("https://api.b.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
+        model: BAI_MODEL,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: prompt },
         ],
-        stream: false,
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 4096,
       }),
     });
-    const data = await res.json();
+
     if (!res.ok) {
-      return jsonError(data?.error?.message || "Yoojel Coder request failed.", 502);
+      const errBody = await res.json().catch(() => ({}));
+      return jsonError(errBody?.error?.message || `Yoojel Coder request failed (${res.status}).`, 502);
     }
-    const raw = data?.choices?.[0]?.message?.content;
-    if (!raw || typeof raw !== "string") {
+
+    const raw = await consumeStream(res);
+    if (!raw.trim()) {
       return jsonError("No code returned.", 502);
     }
     const files = parseFiles(raw);

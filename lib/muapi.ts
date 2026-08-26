@@ -43,6 +43,13 @@ export async function muapiPoll(requestId: string, key: string): Promise<MuapiPo
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    // A failed generation job is itself reported with a non-2xx HTTP status,
+    // with the real status/error nested under `detail` -- unwrap it so
+    // callers see a normal { status: "failed", error } result instead of a
+    // generic "Muapi poll failed (400)" that hides the actual reason.
+    if (data?.detail?.status) {
+      return data.detail;
+    }
     throw new Error(data?.error || `Muapi poll failed (${res.status})`);
   }
   return data;

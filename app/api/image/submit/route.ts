@@ -1,18 +1,25 @@
 import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
-import { muapiSubmit, muapiOutputUrl } from "@/lib/muapi";
+import { muapiSubmit, muapiOutputUrl, muapiUploadFile } from "@/lib/muapi";
 import { checkAndIncrementUsage, IMAGE_MONTHLY_LIMIT } from "@/lib/generationUsage";
 
 // Image generation via Muapi.ai's "Nano Banana" (Google) model. Split into
 // submit/result (like video) instead of polling inline: real-world latency
 // observed here was ~90-110s, well past what a serverless function should
 // hold a connection open for, so the client polls /api/image/result itself.
+//
+// When the client attaches a reference image, this switches to the
+// "nano-banana-edit" endpoint (takes images_list, an array of URLs) instead
+// of plain text-to-image "nano-banana" -- the attached file is uploaded to
+// Muapi's file host first since the model needs a URL, not raw bytes.
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const MODEL_ENDPOINT = "nano-banana";
+const TEXT_TO_IMAGE_ENDPOINT = "nano-banana";
+const IMAGE_EDIT_ENDPOINT = "nano-banana-edit";
 const ASPECT_RATIOS = new Set(["1:1", "9:16", "16:9"]);
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 function jsonError(message: string, status: number) {
   return new Response(JSON.stringify({ error: message }), {
@@ -42,14 +49,33 @@ export async function POST(req: NextRequest) {
     return jsonError("Image generation isn't configured yet — contact support.", 500);
   }
 
-  const { prompt, aspect_ratio } = await req.json();
-  if (!prompt) {
+  const formData = await req.formData().catch(() => null);
+  const prompt = formData?.get("prompt");
+  const aspectRatioRaw = formData?.get("aspect_ratio");
+  const image = formData?.get("image");
+
+  if (!prompt || typeof prompt !== "string") {
     return jsonError("Missing prompt.", 400);
   }
-  const ratio = ASPECT_RATIOS.has(aspect_ratio) ? aspect_ratio : "1:1";
+  const ratio = ASPECT_RATIOS.has(aspectRatioRaw as string) ? (aspectRatioRaw as string) : "1:1";
+
+  if (image instanceof Blob && image.size > MAX_IMAGE_BYTES) {
+    return jsonError("Attached image is too large (max 10MB).", 400);
+  }
 
   try {
-    const submitted = await muapiSubmit(MODEL_ENDPOINT, { prompt, aspect_ratio: ratio }, key);
+    let endpoint = TEXT_TO_IMAGE_ENDPOINT;
+    let payload: Record<string, unknown> = { prompt, aspect_ratio: ratio };
+
+    if (image instanceof Blob && image.size > 0) {
+      const buffer = Buffer.from(await image.arrayBuffer());
+      const filename = image instanceof File ? image.name : "reference.png";
+      const imageUrl = await muapiUploadFile(buffer, filename, image.type || "image/png", key);
+      endpoint = IMAGE_EDIT_ENDPOINT;
+      payload = { prompt, images_list: [imageUrl], aspect_ratio: ratio };
+    }
+
+    const submitted = await muapiSubmit(endpoint, payload, key);
     const requestId = submitted.request_id || submitted.id;
 
     // Some models can respond synchronously with no request_id.

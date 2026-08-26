@@ -179,9 +179,15 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
           >
             <Search size={18} /> Search chats
           </button>
-          <button onClick={() => showToast("Library — coming soon")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
-            <Library size={18} /> Library
-          </button>
+          {hasSession ? (
+            <Link href="/library" className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
+              <Library size={18} /> Library
+            </Link>
+          ) : (
+            <button onClick={() => showToast("Sign in to use Library")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
+              <Library size={18} /> Library
+            </button>
+          )}
           {hasSession ? (
             <Link href="/projects" className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-hover">
               <FolderClosed size={18} /> Projects

@@ -12,6 +12,11 @@ import {
   X,
   Crown,
   Code2,
+  Video,
+  Mic,
+  Search,
+  Building2,
+  Clapperboard,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import MessageList from "@/components/MessageList";
@@ -32,6 +37,16 @@ const SEARCH_COUNT_KEY = "yoojel-search-count";
 const SEARCH_LIMIT = 5;
 
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+const HEADER_APPS = [
+  { href: "/apps/image-studio", icon: ImageIcon, label: "Image Studio" },
+  { href: "/apps/coder", icon: Code2, label: "Yoojel Coder" },
+  { href: "/apps/video-studio", icon: Video, label: "Video Studio" },
+  { href: "/apps/voice-studio", icon: Mic, label: "Voice Studio" },
+  { href: "/apps/deep-research", icon: Search, label: "Deep Research" },
+  { href: "/apps/corporate", icon: Building2, label: "Yoojel Corporate" },
+  { href: "/apps/moviemaker", icon: Clapperboard, label: "Yoojel MovieMaker" },
+];
 
 export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -515,6 +530,22 @@ export default function Home() {
                 </div>
               </>
             )}
+          </div>
+          <div className="hidden items-center gap-1 md:flex">
+            {HEADER_APPS.map((app) => {
+              const Icon = app.icon;
+              return (
+                <Link
+                  key={app.href}
+                  href={app.href}
+                  title={app.label}
+                  aria-label={app.label}
+                  className="rounded-lg p-2 text-gray-400 hover:bg-hover hover:text-gray-200"
+                >
+                  <Icon size={18} />
+                </Link>
+              );
+            })}
           </div>
           {headerProfile ? (
             <div className="hidden sm:flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5">

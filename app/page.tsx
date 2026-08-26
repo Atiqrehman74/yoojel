@@ -19,6 +19,7 @@ import Composer from "@/components/Composer";
 import { MODELS, DEFAULT_MODEL } from "@/lib/models";
 import { createClient } from "@/lib/supabase";
 import { useVoiceMode } from "@/hooks/useVoiceMode";
+import { GENERIC_CHAT_ERROR } from "@/lib/errors";
 import type {
   Attachment,
   ChatMessage,
@@ -369,6 +370,7 @@ export default function Home() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
+        console.error("chat request failed:", err?.message || err);
         setConversations((prev) =>
           prev.map((c) =>
             c.id === convoId
@@ -376,7 +378,7 @@ export default function Home() {
                   ...c,
                   messages: c.messages.map((m) =>
                     m.id === aiMsg.id
-                      ? { ...m, content: m.content + `\n\n⚠️ ${err.message}` }
+                      ? { ...m, content: m.content + `\n\n⚠️ ${GENERIC_CHAT_ERROR}` }
                       : m
                   ),
                 }

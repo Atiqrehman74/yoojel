@@ -4,6 +4,7 @@
 // search, no vision, and a failure here should never affect Claude models.
 
 import type { ChatRequest } from "@/lib/types";
+import { GENERIC_CHAT_ERROR } from "@/lib/errors";
 
 const BASE_URL = "https://routesme.online/v1";
 
@@ -50,7 +51,8 @@ export async function streamRoutesme(
 
         if (!upstream.ok || !upstream.body) {
           const errText = await upstream.text().catch(() => "");
-          send({ type: "error", error: `routesme error: ${upstream.status} ${errText.slice(0, 200)}` });
+          console.error("routesme error:", upstream.status, errText.slice(0, 200));
+          send({ type: "error", error: GENERIC_CHAT_ERROR });
           return;
         }
 
@@ -83,7 +85,8 @@ export async function streamRoutesme(
 
         send({ type: "done" });
       } catch (err: any) {
-        send({ type: "error", error: err?.message || "Something went wrong talking to routesme." });
+        console.error("routesme stream error:", err?.message || err);
+        send({ type: "error", error: GENERIC_CHAT_ERROR });
       } finally {
         controller.close();
       }

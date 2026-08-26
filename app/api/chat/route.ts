@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { DEFAULT_MODEL, isValidModel, MODELS } from "@/lib/models";
 import type { ChatRequest } from "@/lib/types";
 import { currentDateLine } from "@/lib/currentDate";
+import { GENERIC_CHAT_ERROR } from "@/lib/errors";
 import { streamRoutesme } from "./routesme";
 
 export const runtime = "nodejs";
@@ -129,10 +130,8 @@ export async function POST(req: NextRequest) {
 
         send({ type: "done" });
       } catch (err: any) {
-        send({
-          type: "error",
-          error: err?.message || "Something went wrong talking to Claude.",
-        });
+        console.error("chat stream error:", err?.message || err);
+        send({ type: "error", error: GENERIC_CHAT_ERROR });
       } finally {
         controller.close();
       }

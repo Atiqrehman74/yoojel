@@ -5,58 +5,86 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FolderClosed, Loader2, Plus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import { migrateLegacyProjects } from "@/lib/migrateProjects";
 import type { Project } from "@/lib/types";
-
-const STORAGE_KEY = "yoojel-projects";
-
-function uid() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
 
 export default function ProjectsPage() {
   const [checking, setChecking] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const router = useRouter();
-  const supabase = createClient();
+
+  const authHeaders = async (): Promise<Record<string, string>> => {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabase.auth.getSession().then((res: any) => {
-      setSignedIn(Boolean(res?.data?.session));
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      setSignedIn(Boolean(session));
       setChecking(false);
-    });
+      if (!session) return;
+
+      const headers = { Authorization: `Bearer ${session.access_token}` };
+      await migrateLegacyProjects(headers);
+
+      try {
+        const res = await fetch("/api/projects", { headers });
+        const json = await res.json();
+        if (!res.ok) {
+          setError(json.error || "Failed to load projects.");
+          return;
+        }
+        setProjects(json.items || []);
+      } catch (e: any) {
+        setError(e?.message || "Failed to load projects.");
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  useEffect(() => {
-    if (!signedIn) return;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setProjects(JSON.parse(raw));
-    } catch {}
-  }, [signedIn]);
-
-  useEffect(() => {
-    if (!signedIn) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-  }, [projects, signedIn]);
-
-  const createProject = () => {
-    if (!name.trim()) return;
-    const project: Project = {
-      id: uid(),
-      name: name.trim(),
-      description: description.trim(),
-      createdAt: Date.now(),
-    };
-    setProjects((prev) => [project, ...prev]);
+  const openCreate = () => {
     setName("");
     setDescription("");
-    setCreating(false);
-    router.push(`/projects/${project.id}`);
+    setError("");
+    setCreating(true);
+  };
+
+  const createProject = async () => {
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ name: name.trim(), description: description.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to create project.");
+        return;
+      }
+      setCreating(false);
+      router.push(`/projects/${data.item.id}`);
+    } catch (e: any) {
+      setError(e?.message || "Failed to create project.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (checking) {
@@ -100,46 +128,24 @@ export default function ProjectsPage() {
         <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-gray-400">Group and organize your work.</p>
           <button
-            onClick={() => setCreating(true)}
+            onClick={openCreate}
             className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-gray-200"
           >
             <Plus size={14} /> New project
           </button>
         </div>
 
-        {creating && (
-          <div className="mb-6 rounded-xl border border-white/10 bg-bubble p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-medium">New project</p>
-              <button onClick={() => setCreating(false)} className="text-gray-400 hover:text-gray-200" aria-label="Cancel">
-                <X size={16} />
-              </button>
-            </div>
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Project name"
-              className="mb-2 w-full rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-white/30"
-            />
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description (optional)"
-              rows={2}
-              className="mb-3 w-full resize-none rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-white/30"
-            />
-            <button
-              onClick={createProject}
-              disabled={!name.trim()}
-              className="rounded-lg bg-white px-4 py-2 text-xs font-semibold text-black disabled:opacity-40"
-            >
-              Create
-            </button>
+        {error && !creating && (
+          <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+            {error}
           </div>
         )}
 
-        {projects.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-gray-500">
+            <Loader2 size={22} className="animate-spin" />
+          </div>
+        ) : projects.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-16 text-center text-gray-500">
             <FolderClosed size={28} className="opacity-40" />
             <p className="text-sm">No projects yet.</p>
@@ -157,12 +163,73 @@ export default function ProjectsPage() {
                 </div>
                 <p className="truncate text-sm font-medium">{p.name}</p>
                 {p.description && <p className="line-clamp-2 text-xs text-gray-400">{p.description}</p>}
-                <p className="text-[11px] text-gray-500">{new Date(p.createdAt).toLocaleDateString()}</p>
+                <p className="text-[11px] text-gray-500">{new Date(p.created_at).toLocaleDateString()}</p>
               </Link>
             ))}
           </div>
         )}
       </main>
+
+      {creating && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => !saving && setCreating(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#1c1c1c] p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Create a project</h2>
+              <button
+                onClick={() => setCreating(false)}
+                className="rounded-lg p-1 text-gray-400 hover:bg-hover hover:text-gray-200"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <label className="mb-1.5 block text-sm font-medium text-gray-200">What are you working on?</label>
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && createProject()}
+              placeholder="Name your project"
+              className="mb-5 w-full rounded-lg border border-white/15 bg-[#141414] px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+            />
+
+            <label className="mb-1.5 block text-sm font-medium text-gray-200">What are you trying to achieve?</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe your project, goals, subject, etc..."
+              rows={4}
+              className="mb-2 w-full resize-none rounded-lg border border-white/15 bg-[#141414] px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+            />
+
+            {error && <p className="mb-2 text-xs text-red-300">{error}</p>}
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setCreating(false)}
+                className="rounded-lg border border-white/15 px-4 py-2 text-sm text-gray-200 hover:bg-hover"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createProject}
+                disabled={!name.trim() || saving}
+                className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black disabled:opacity-40"
+              >
+                {saving && <Loader2 size={14} className="animate-spin" />}
+                Create project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

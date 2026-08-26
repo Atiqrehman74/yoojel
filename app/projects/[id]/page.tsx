@@ -7,78 +7,104 @@ import { ArrowLeft, Loader2, MessageSquare, Save, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import type { Conversation, Project } from "@/lib/types";
 
-const STORAGE_KEY = "yoojel-projects";
 const CONVERSATIONS_KEY = "yoojel-conversations";
 
 export default function ProjectDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const supabase = createClient();
 
   const [checking, setChecking] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [project, setProject] = useState<Project | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
   const [chats, setChats] = useState<Conversation[]>([]);
 
-  useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabase.auth.getSession().then((res: any) => {
-      setSignedIn(Boolean(res?.data?.session));
-      setChecking(false);
-    });
-  }, []);
+  const authHeaders = async (): Promise<Record<string, string>> => {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
   useEffect(() => {
-    if (!signedIn) return;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const projects: Project[] = raw ? JSON.parse(raw) : [];
-      const found = projects.find((p) => p.id === id);
-      if (!found) {
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      setSignedIn(Boolean(session));
+      setChecking(false);
+      if (!session) return;
+
+      try {
+        const res = await fetch(`/api/projects/${id}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) {
+          setNotFound(true);
+          return;
+        }
+        const data2 = await res.json();
+        setProject(data2.item);
+        setName(data2.item.name);
+        setDescription(data2.item.description);
+
+        const convRaw = localStorage.getItem(CONVERSATIONS_KEY);
+        const allChats: Conversation[] = convRaw ? JSON.parse(convRaw) : [];
+        setChats(allChats.filter((c) => c.projectId === data2.item.id));
+      } catch {
         setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]);
+
+  const save = async () => {
+    if (!project || !name.trim() || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ name: name.trim(), description: description.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to save project.");
         return;
       }
-      setProject(found);
-      setName(found.name);
-      setDescription(found.description);
-
-      const convRaw = localStorage.getItem(CONVERSATIONS_KEY);
-      const allChats: Conversation[] = convRaw ? JSON.parse(convRaw) : [];
-      setChats(allChats.filter((c) => c.projectId === found.id));
-    } catch {
-      setNotFound(true);
+      setProject(data.item);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch (e: any) {
+      setError(e?.message || "Failed to save project.");
+    } finally {
+      setSaving(false);
     }
-  }, [signedIn, id]);
-
-  const persist = (updater: (projects: Project[]) => Project[]) => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const projects: Project[] = raw ? JSON.parse(raw) : [];
-    const next = updater(projects);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    return next;
   };
 
-  const save = () => {
-    if (!project || !name.trim()) return;
-    const updated = { ...project, name: name.trim(), description: description.trim() };
-    persist((projects) => projects.map((p) => (p.id === project.id ? updated : p)));
-    setProject(updated);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
-  };
-
-  const remove = () => {
+  const remove = async () => {
     if (!project) return;
     if (!confirm(`Delete "${project.name}"? This can't be undone.`)) return;
-    persist((projects) => projects.filter((p) => p.id !== project.id));
+    try {
+      const headers = await authHeaders();
+      await fetch(`/api/projects/${project.id}`, { method: "DELETE", headers });
+    } catch {
+      // Navigate away regardless -- the list page will just show it if the
+      // delete somehow failed, no worse than before.
+    }
     router.push("/projects");
   };
 
-  if (checking) {
+  if (checking || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-main text-gray-400">
         <Loader2 size={20} className="animate-spin" />
@@ -149,18 +175,20 @@ export default function ProjectDetailsPage() {
           className="mb-1 w-full resize-none rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-sm text-gray-100 outline-none focus:border-white/30"
         />
         {project && (
-          <p className="mb-4 text-[11px] text-gray-500">
-            Created {new Date(project.createdAt).toLocaleString()}
+          <p className="mb-1 text-[11px] text-gray-500">
+            Created {new Date(project.created_at).toLocaleString()}
           </p>
         )}
+        {error && <p className="mb-3 text-xs text-red-300">{error}</p>}
 
-        <div className="flex items-center gap-2">
+        <div className="mt-3 flex items-center gap-2">
           <button
             onClick={save}
-            disabled={!name.trim()}
+            disabled={!name.trim() || saving}
             className="flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-xs font-semibold text-black disabled:opacity-40"
           >
-            <Save size={13} /> {saved ? "Saved" : "Save"}
+            {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+            {saved ? "Saved" : "Save"}
           </button>
           <button
             onClick={remove}

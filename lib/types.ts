@@ -33,7 +33,7 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  createdAt: number;
+  created_at: string;
 }
 
 /** Payload the client POSTs to /api/chat */

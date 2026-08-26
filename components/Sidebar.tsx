@@ -8,10 +8,9 @@ import {
 import type { Conversation, Project } from "@/lib/types";
 import type { Profile } from "@/lib/supabase";
 import { createClient } from "@/lib/supabase";
+import { migrateLegacyProjects } from "@/lib/migrateProjects";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-const PROJECTS_KEY = "yoojel-projects";
 
 interface Props {
   open: boolean;
@@ -46,15 +45,8 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
   const router = useRouter();
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(PROJECTS_KEY);
-      if (raw) setProjects(JSON.parse(raw));
-    } catch {}
-  }, []);
-
-  useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabase.auth.getSession().then((res: any) => {
+    supabase.auth.getSession().then(async (res: any) => {
       const session = res?.data?.session;
       if (!session) return;
       setHasSession(true);
@@ -81,6 +73,13 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
       })
         .then(r => r.json())
         .then(({ profile }) => { if (profile) setProfile(profile as Profile); })
+        .catch(() => {});
+
+      const projectHeaders = { Authorization: `Bearer ${session.access_token}` };
+      await migrateLegacyProjects(projectHeaders);
+      fetch("/api/projects", { headers: projectHeaders })
+        .then((r) => r.json())
+        .then((data) => { if (data.items) setProjects(data.items); })
         .catch(() => {});
     });
   }, []);

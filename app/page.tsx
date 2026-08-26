@@ -484,8 +484,8 @@ export default function Home() {
 
       <main className="relative flex h-full min-w-0 flex-1 flex-col">
         {/* header */}
-        <header className="flex items-center justify-between px-3 py-3 md:px-4">
-          <div className={sidebarOpen ? "" : "pl-10 md:pl-12"}>
+        <header className="flex items-center justify-between gap-2 px-3 py-3 md:px-4">
+          <div className={`flex-shrink-0 ${sidebarOpen ? "" : "pl-10 md:pl-12"}`}>
             <button
               onClick={() => setModelMenu((v) => !v)}
               className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-base font-semibold text-gray-200 hover:bg-hover md:px-3 md:text-lg"
@@ -531,23 +531,25 @@ export default function Home() {
               </>
             )}
           </div>
-          <div className="hidden items-center gap-1 lg:flex">
+          <div className="hidden min-w-0 flex-1 items-center justify-start gap-0.5 overflow-x-auto lg:flex">
             {HEADER_APPS.map((app) => {
               const Icon = app.icon;
               return (
                 <Link
                   key={app.href}
                   href={app.href}
-                  className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm text-gray-400 hover:bg-hover hover:text-gray-200"
+                  className="group flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs text-gray-400 hover:bg-hover"
                 >
-                  <Icon size={16} className="flex-shrink-0" />
-                  {app.label}
+                  <Icon size={14} className="flex-shrink-0 transition group-hover:text-[#22d3ee]" />
+                  <span className="bg-gradient-to-r from-[#06b6d4] to-[#a855f7] bg-clip-text transition group-hover:text-transparent">
+                    {app.label}
+                  </span>
                 </Link>
               );
             })}
           </div>
           {headerProfile ? (
-            <div className="hidden sm:flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5">
+            <div className="hidden flex-shrink-0 items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 sm:flex">
               <span className="text-sm text-gray-200 max-w-[120px] truncate">
                 {headerProfile.full_name ?? headerProfile.email}
               </span>
@@ -564,7 +566,7 @@ export default function Home() {
           ) : (
             <a
               href="https://yoojel.com"
-              className="hidden rounded-full border border-white/15 px-4 py-1.5 text-sm text-gray-200 hover:bg-hover sm:block"
+              className="hidden flex-shrink-0 rounded-full border border-white/15 px-4 py-1.5 text-sm text-gray-200 hover:bg-hover sm:block"
             >
               yoojel.com
             </a>

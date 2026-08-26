@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Mic, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, Mic, Loader2, Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
 // Keep in sync with VOICE_IDS in app/api/voice/submit/route.ts.
@@ -37,6 +37,20 @@ export default function VoiceStudioPage() {
   const [error, setError] = useState("");
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [active, setActive] = useState<Generation | null>(null);
+  const [attachmentName, setAttachmentName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const pickAttachment = (file: File | undefined) => {
+    if (!file) return;
+    setError("");
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || "").trim();
+      setPrompt(text.slice(0, MAX_LENGTH));
+      setAttachmentName(file.name);
+    };
+    reader.readAsText(file);
+  };
 
   const authHeaders = async (): Promise<Record<string, string>> => {
     const supabase = createClient();
@@ -120,9 +134,18 @@ export default function VoiceStudioPage() {
       <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
         {/* prompt + controls */}
         <div className="rounded-xl border border-white/10 bg-bubble p-4">
+          {attachmentName && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-2 py-1.5">
+              <Paperclip size={12} className="flex-shrink-0 text-gray-400" />
+              <p className="flex-1 truncate text-xs text-gray-400">Loaded from {attachmentName}</p>
+            </div>
+          )}
           <textarea
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value.slice(0, MAX_LENGTH))}
+            onChange={(e) => {
+              setPrompt(e.target.value.slice(0, MAX_LENGTH));
+              setAttachmentName("");
+            }}
             placeholder="Type the text you want spoken…"
             rows={4}
             className="w-full resize-none bg-transparent text-sm text-gray-100 placeholder-gray-500 outline-none"
@@ -131,17 +154,34 @@ export default function VoiceStudioPage() {
             {prompt.length}/{MAX_LENGTH}
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <select
-              value={voiceId}
-              onChange={(e) => setVoiceId(e.target.value)}
-              className="rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-xs text-gray-100 outline-none focus:border-brand"
-            >
-              {VOICES.map((v) => (
-                <option key={v.value} value={v.value}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.md"
+                className="hidden"
+                onChange={(e) => pickAttachment(e.target.files?.[0])}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200"
+                aria-label="Load text from a file"
+                title="Load the text to speak from a .txt or .md file"
+              >
+                <Paperclip size={15} />
+              </button>
+              <select
+                value={voiceId}
+                onChange={(e) => setVoiceId(e.target.value)}
+                className="rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-xs text-gray-100 outline-none focus:border-brand"
+              >
+                {VOICES.map((v) => (
+                  <option key={v.value} value={v.value}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button
               onClick={generate}
               disabled={loading || !prompt.trim()}

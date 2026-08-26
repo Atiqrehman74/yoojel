@@ -14,6 +14,7 @@ export const maxDuration = 60;
 
 const BAI_MODEL = "deepseek-v4-flash";
 const MAX_PROMPT_LENGTH = 4000;
+const MAX_ATTACHMENT_LENGTH = 20000;
 
 const SYSTEM_PROMPT = `You are Yoojel Coder, a code generation assistant. Given a request, write
 complete, working code -- no placeholders, no "// TODO: implement this",
@@ -99,13 +100,21 @@ export async function POST(req: NextRequest) {
     return jsonError("Yoojel Coder isn't configured yet — contact support.", 500);
   }
 
-  const { prompt } = await req.json().catch(() => ({}));
+  const { prompt, attachmentName, attachmentContent } = await req.json().catch(() => ({}));
   if (!prompt || typeof prompt !== "string") {
     return jsonError("Missing prompt.", 400);
   }
   if (prompt.length > MAX_PROMPT_LENGTH) {
     return jsonError(`Prompt is too long (max ${MAX_PROMPT_LENGTH} characters).`, 400);
   }
+  if (typeof attachmentContent === "string" && attachmentContent.length > MAX_ATTACHMENT_LENGTH) {
+    return jsonError(`Attached file is too long (max ${MAX_ATTACHMENT_LENGTH} characters).`, 400);
+  }
+
+  const userContent =
+    typeof attachmentContent === "string" && attachmentContent
+      ? `Attached file \`${typeof attachmentName === "string" && attachmentName ? attachmentName : "reference"}\`:\n\`\`\`\n${attachmentContent}\n\`\`\`\n\n${prompt}`
+      : prompt;
 
   try {
     const res = await fetch("https://api.b.ai/v1/chat/completions", {
@@ -118,7 +127,7 @@ export async function POST(req: NextRequest) {
         model: BAI_MODEL,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: prompt },
+          { role: "user", content: userContent },
         ],
         stream: true,
         temperature: 0.7,

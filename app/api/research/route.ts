@@ -23,6 +23,9 @@ const DEPTH_CONFIG = {
 
 type Depth = keyof typeof DEPTH_CONFIG;
 
+const MAX_ATTACHMENT_TEXT_LENGTH = 20000;
+const MAX_ATTACHMENT_BASE64_LENGTH = 14 * 1024 * 1024; // ~10MB raw
+
 function buildSystemPrompt(): string {
   return `You are Yoojel's Deep Research assistant. Given a topic or
 question, research it thoroughly using web search across multiple queries and
@@ -49,7 +52,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { topic?: string; depth?: string };
+  let body: {
+    topic?: string;
+    depth?: string;
+    attachment?: { mediaType?: string; base64?: string; text?: string; name?: string };
+  };
   try {
     body = await req.json();
   } catch {
@@ -70,6 +77,40 @@ export async function POST(req: NextRequest) {
   const depth: Depth = body.depth === "quick" || body.depth === "deep" ? body.depth : "standard";
   const { model, maxUses, maxTokens } = DEPTH_CONFIG[depth];
 
+  const attachment = body.attachment;
+  if (attachment?.text && attachment.text.length > MAX_ATTACHMENT_TEXT_LENGTH) {
+    return new Response(
+      JSON.stringify({ error: `Attached file is too long (max ${MAX_ATTACHMENT_TEXT_LENGTH} characters).` }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (attachment?.base64 && attachment.base64.length > MAX_ATTACHMENT_BASE64_LENGTH) {
+    return new Response(JSON.stringify({ error: "Attached image is too large (max 10MB)." }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const userContent: Anthropic.ContentBlockParam[] = [];
+  if (attachment?.base64 && attachment.mediaType?.startsWith("image/")) {
+    userContent.push({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: attachment.mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+        data: attachment.base64,
+      },
+    });
+    userContent.push({ type: "text", text: `Research topic: ${topic}` });
+  } else if (attachment?.text) {
+    userContent.push({
+      type: "text",
+      text: `Attached file \`${attachment.name || "reference"}\`:\n\`\`\`\n${attachment.text}\n\`\`\`\n\nResearch topic: ${topic}`,
+    });
+  } else {
+    userContent.push({ type: "text", text: `Research topic: ${topic}` });
+  }
+
   const anthropic = new Anthropic({ apiKey });
   const encoder = new TextEncoder();
 
@@ -83,7 +124,7 @@ export async function POST(req: NextRequest) {
           model,
           max_tokens: maxTokens,
           system: buildSystemPrompt(),
-          messages: [{ role: "user", content: `Research topic: ${topic}` }],
+          messages: [{ role: "user", content: userContent }],
           tools: [{ type: "web_search_20250305", name: "web_search", max_uses: maxUses } as any],
         });
 

@@ -36,3 +36,29 @@ export async function requireProUser(req: NextRequest): Promise<ProGateResult> {
 
   return { ok: true, userId: user.id, isAdmin: !!profile.is_admin };
 }
+
+type UserGateResult = { ok: true; userId: string } | { ok: false; status: number; error: string };
+
+// Lighter than requireProUser -- resolves the caller's identity without
+// requiring a Pro plan. Used for features attached to non-Pro-gated tools
+// (e.g. Deep Research's history/library) where saving/listing your own past
+// results shouldn't suddenly require a subscription the tool itself doesn't.
+export async function requireUser(req: NextRequest): Promise<UserGateResult> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
+
+  if (!supabaseUrl || !serviceKey || !token) {
+    return { ok: false, status: 401, error: "Sign in required." };
+  }
+
+  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  const {
+    data: { user },
+  } = await admin.auth.getUser(token);
+  if (!user) {
+    return { ok: false, status: 401, error: "Sign in required." };
+  }
+
+  return { ok: true, userId: user.id };
+}

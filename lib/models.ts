@@ -39,6 +39,11 @@ export const MODELS: ModelOption[] = [
 export const DEFAULT_MODEL =
   process.env.DEFAULT_MODEL || MODELS[0].id;
 
+// Pro accounts default to "Yoojel Pro" (Opus) instead of the free-tier
+// default, so the model button never shows "Yoojel Standard" for someone
+// who's actually paying for the top-tier model.
+export const PRO_DEFAULT_MODEL = "claude-opus-4-7";
+
 export function isValidModel(id: string): boolean {
   return MODELS.some((m) => m.id === id);
 }

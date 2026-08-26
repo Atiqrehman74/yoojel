@@ -21,7 +21,7 @@ import {
 import Sidebar from "@/components/Sidebar";
 import MessageList from "@/components/MessageList";
 import Composer from "@/components/Composer";
-import { MODELS, DEFAULT_MODEL } from "@/lib/models";
+import { MODELS, DEFAULT_MODEL, PRO_DEFAULT_MODEL } from "@/lib/models";
 import { createClient } from "@/lib/supabase";
 import { useVoiceMode } from "@/hooks/useVoiceMode";
 import { GENERIC_CHAT_ERROR } from "@/lib/errors";
@@ -122,7 +122,16 @@ export default function Home() {
       }
       fetch('/api/profile', { headers: { Authorization: `Bearer ${session.access_token}` } })
         .then(r => r.json())
-        .then(({ profile }) => { if (profile) setHeaderProfile(profile as Profile); })
+        .then(({ profile }) => {
+          if (!profile) return;
+          setHeaderProfile(profile as Profile);
+          // Pro accounts default to the Pro model instead of the free-tier
+          // default -- only if the user hasn't already switched models
+          // themselves in this session.
+          if (profile.plan === 'pro') {
+            setModel((current) => (current === DEFAULT_MODEL ? PRO_DEFAULT_MODEL : current));
+          }
+        })
         .catch(() => {});
     });
   }, []);
@@ -484,7 +493,7 @@ export default function Home() {
 
       <main className="relative flex h-full min-w-0 flex-1 flex-col">
         {/* header */}
-        <header className="flex items-center justify-between gap-2 px-3 py-3 md:px-4">
+        <header className="relative flex items-center justify-between gap-2 px-3 py-3 md:px-4">
           <div className={`flex-shrink-0 ${sidebarOpen ? "" : "pl-10 md:pl-12"}`}>
             <button
               onClick={() => setModelMenu((v) => !v)}
@@ -531,7 +540,7 @@ export default function Home() {
               </>
             )}
           </div>
-          <div className="hidden min-w-0 flex-1 items-center justify-start gap-0.5 overflow-x-auto lg:flex">
+          <div className="absolute left-1/2 top-1/2 hidden max-w-[min(820px,calc(100%_-_380px))] -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 overflow-x-auto lg:flex">
             {HEADER_APPS.map((app) => {
               const Icon = app.icon;
               return (

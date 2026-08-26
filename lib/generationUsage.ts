@@ -3,6 +3,9 @@ import { createClient } from "@supabase/supabase-js";
 export const IMAGE_MONTHLY_LIMIT = 20;
 export const VIDEO_MONTHLY_LIMIT = 5;
 export const VOICE_MONTHLY_LIMIT = 15;
+// Voice cloning costs ~$0.65/clone on Muapi (vs ~$0.02 for a normal TTS
+// generation) -- capped separately and much lower than the other limits.
+export const VOICE_CLONE_MONTHLY_LIMIT = 3;
 
 // Calls the increment_generation_usage() Postgres function (see
 // supabase/sql/2026-08-21-generation-usage-limits.sql), which atomically

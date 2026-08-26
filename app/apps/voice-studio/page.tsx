@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Mic, Loader2, Paperclip } from "lucide-react";
+import { ArrowLeft, Download, Mic, Loader2, Paperclip, Sparkles, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
 // Keep in sync with VOICE_IDS in app/api/voice/submit/route.ts.
@@ -25,9 +25,12 @@ const VOICES = [
 
 const MAX_LENGTH = 2000;
 type Generation = { id: string; prompt: string; src: string; voice: string };
+type ClonedVoice = { id: string; voice_id: string; name: string; preview_url: string | null };
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 90; // ~3 minutes
+const CLONE_POLL_INTERVAL_MS = 3000;
+const MAX_CLONE_POLL_ATTEMPTS = 60; // ~3 minutes
 
 export default function VoiceStudioPage() {
   const [prompt, setPrompt] = useState("");
@@ -39,6 +42,16 @@ export default function VoiceStudioPage() {
   const [active, setActive] = useState<Generation | null>(null);
   const [attachmentName, setAttachmentName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [cloneOpen, setCloneOpen] = useState(false);
+  const [clonedVoices, setClonedVoices] = useState<ClonedVoice[]>([]);
+  const [cloneAudio, setCloneAudio] = useState<File | null>(null);
+  const [cloneName, setCloneName] = useState("");
+  const [cloneConsent, setCloneConsent] = useState(false);
+  const [cloning, setCloning] = useState(false);
+  const [cloneStatusText, setCloneStatusText] = useState("");
+  const [cloneError, setCloneError] = useState("");
+  const cloneAudioInputRef = useRef<HTMLInputElement>(null);
 
   const pickAttachment = (file: File | undefined) => {
     if (!file) return;
@@ -57,6 +70,94 @@ export default function VoiceStudioPage() {
     const { data } = await supabase.auth.getSession();
     const token = data?.session?.access_token;
     return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const loadClonedVoices = async () => {
+    try {
+      const headers = await authHeaders();
+      const res = await fetch("/api/voice/clone", { headers });
+      if (!res.ok) return;
+      const data = await res.json();
+      setClonedVoices(data.items || []);
+    } catch {
+      // Cloned-voice list is a nice-to-have -- ignore failures silently.
+    }
+  };
+
+  useEffect(() => {
+    loadClonedVoices();
+  }, []);
+
+  const cloneVoice = async () => {
+    if (!cloneAudio || !cloneName.trim() || !cloneConsent || cloning) return;
+    setCloning(true);
+    setCloneError("");
+    setCloneStatusText("Uploading sample…");
+    try {
+      const form = new FormData();
+      form.append("audio", cloneAudio);
+      form.append("name", cloneName.trim());
+      form.append("consent", "true");
+      const submitRes = await fetch("/api/voice/clone", {
+        method: "POST",
+        headers: await authHeaders(),
+        body: form,
+      });
+      const submitData = await submitRes.json();
+      if (!submitRes.ok) {
+        setCloneError(submitData.error || "Voice cloning failed to start.");
+        return;
+      }
+
+      setCloneStatusText("Analyzing voice… this can take a minute.");
+      const pollHeaders = await authHeaders();
+      for (let attempt = 0; attempt < MAX_CLONE_POLL_ATTEMPTS; attempt++) {
+        await new Promise((r) => setTimeout(r, CLONE_POLL_INTERVAL_MS));
+        const res = await fetch(
+          `/api/voice/clone/result?id=${encodeURIComponent(submitData.requestId)}&voiceId=${encodeURIComponent(
+            submitData.voiceId
+          )}&name=${encodeURIComponent(submitData.name)}`,
+          { headers: pollHeaders }
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          setCloneError(data.error || "Voice cloning failed.");
+          return;
+        }
+        if (data.status === "done") {
+          setClonedVoices((prev) => [data.item, ...prev]);
+          setVoiceId(data.item.voice_id);
+          setCloneAudio(null);
+          setCloneName("");
+          setCloneConsent(false);
+          if (cloneAudioInputRef.current) cloneAudioInputRef.current.value = "";
+          setCloneOpen(false);
+          return;
+        }
+        if (data.status === "failed") {
+          setCloneError(data.error || "Voice cloning failed.");
+          return;
+        }
+      }
+      setCloneError("Voice cloning timed out.");
+    } catch (e: any) {
+      setCloneError(e?.message || "Voice cloning failed.");
+    } finally {
+      setCloning(false);
+      setCloneStatusText("");
+    }
+  };
+
+  const deleteClonedVoice = async (v: ClonedVoice) => {
+    setClonedVoices((prev) => prev.filter((c) => c.id !== v.id));
+    if (voiceId === v.voice_id) setVoiceId(VOICES[0].value);
+    try {
+      const headers = await authHeaders();
+      await fetch(`/api/voice/clone?id=${encodeURIComponent(v.id)}`, { method: "DELETE", headers });
+    } catch {
+      // Already removed from the UI -- a failed delete just means it may
+      // reappear next visit, an acceptable degradation here.
+    }
   };
 
   const generate = async () => {
@@ -98,7 +199,10 @@ export default function VoiceStudioPage() {
             id: `${Date.now()}`,
             prompt,
             src: data.url,
-            voice: VOICES.find((v) => v.value === voiceId)?.label || voiceId,
+            voice:
+              VOICES.find((v) => v.value === voiceId)?.label ||
+              clonedVoices.find((v) => v.voice_id === voiceId)?.name ||
+              voiceId,
           };
           setGenerations((prev) => [gen, ...prev]);
           setActive(gen);
@@ -175,12 +279,31 @@ export default function VoiceStudioPage() {
                 onChange={(e) => setVoiceId(e.target.value)}
                 className="rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-xs text-gray-100 outline-none focus:border-brand"
               >
-                {VOICES.map((v) => (
-                  <option key={v.value} value={v.value}>
-                    {v.label}
-                  </option>
-                ))}
+                {clonedVoices.length > 0 && (
+                  <optgroup label="My cloned voices">
+                    {clonedVoices.map((v) => (
+                      <option key={v.voice_id} value={v.voice_id}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="Built-in voices">
+                  {VOICES.map((v) => (
+                    <option key={v.value} value={v.value}>
+                      {v.label}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
+              <button
+                onClick={() => setCloneOpen((v) => !v)}
+                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
+                  cloneOpen ? "border-white/25 bg-hover text-gray-200" : "border-white/10 text-gray-400 hover:bg-hover hover:text-gray-200"
+                }`}
+              >
+                <Sparkles size={13} /> Clone a voice
+              </button>
             </div>
             <button
               onClick={generate}
@@ -192,6 +315,97 @@ export default function VoiceStudioPage() {
             </button>
           </div>
         </div>
+
+        {cloneOpen && (
+          <div className="rounded-xl border border-white/10 bg-bubble p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Clone a voice</p>
+              <button onClick={() => setCloneOpen(false)} className="rounded p-1 text-gray-400 hover:bg-hover hover:text-gray-200">
+                <X size={15} />
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-gray-400">
+              Upload a clear recording of the voice (at least ~20 seconds, minimal background noise). Only clone a
+              voice you own or have explicit permission to use.
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <input
+                ref={cloneAudioInputRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => setCloneAudio(e.target.files?.[0] || null)}
+              />
+              <button
+                onClick={() => cloneAudioInputRef.current?.click()}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-300 hover:bg-hover"
+              >
+                <Paperclip size={13} /> {cloneAudio ? cloneAudio.name : "Choose audio file"}
+              </button>
+              <input
+                value={cloneName}
+                onChange={(e) => setCloneName(e.target.value.slice(0, 40))}
+                placeholder="Name this voice, e.g. 'My voice'"
+                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-1.5 text-xs text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+              />
+            </div>
+
+            <label className="mt-3 flex items-start gap-2 text-xs text-gray-400">
+              <input
+                type="checkbox"
+                checked={cloneConsent}
+                onChange={(e) => setCloneConsent(e.target.checked)}
+                className="mt-0.5"
+              />
+              I confirm this is my own voice, or I have explicit permission from the speaker to clone it.
+            </label>
+
+            {cloneStatusText && <p className="mt-2 text-xs text-gray-400">{cloneStatusText}</p>}
+            {cloneError && (
+              <div className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                {cloneError}
+              </div>
+            )}
+
+            <div className="mt-3 flex items-center justify-end">
+              <button
+                onClick={cloneVoice}
+                disabled={cloning || !cloneAudio || !cloneName.trim() || !cloneConsent}
+                className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-semibold text-black disabled:opacity-40"
+              >
+                {cloning ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                {cloning ? "Cloning…" : "Clone Voice"}
+              </button>
+            </div>
+
+            {clonedVoices.length > 0 && (
+              <div className="mt-4 border-t border-white/10 pt-3">
+                <p className="mb-2 text-xs font-medium text-gray-500">Your cloned voices</p>
+                <div className="flex flex-col gap-1.5">
+                  {clonedVoices.map((v) => (
+                    <div
+                      key={v.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-white/10 px-3 py-2"
+                    >
+                      <span className="truncate text-xs text-gray-300">{v.name}</span>
+                      <div className="flex flex-shrink-0 items-center gap-1">
+                        {v.preview_url && <audio src={v.preview_url} controls className="h-7 w-40" />}
+                        <button
+                          onClick={() => deleteClonedVoice(v)}
+                          className="rounded p-1.5 text-gray-400 hover:bg-hover hover:text-red-300"
+                          aria-label={`Delete ${v.name}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {statusText && (
           <div className="rounded-lg border border-white/10 bg-bubble px-3 py-2 text-sm text-gray-400">{statusText}</div>

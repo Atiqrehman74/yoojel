@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { requireProUser } from "@/lib/requireProUser";
 import { muapiSubmit } from "@/lib/muapi";
 import { checkAndIncrementUsage, VOICE_MONTHLY_LIMIT } from "@/lib/generationUsage";
@@ -70,9 +71,28 @@ export async function POST(req: NextRequest) {
     return jsonError(`Text is too long (max ${MAX_PROMPT_LENGTH} characters).`, 400);
   }
 
+  let resolvedVoiceId = "Friendly_Person";
+  if (VOICE_IDS.has(voice_id)) {
+    resolvedVoiceId = voice_id;
+  } else if (typeof voice_id === "string" && voice_id.startsWith("yj")) {
+    // A cloned voice -- verify the caller actually owns it before letting
+    // them speak with it (cloned voice_ids aren't guessable, but ownership
+    // is still checked explicitly rather than trusted from the client).
+    const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+      auth: { persistSession: false },
+    });
+    const { data } = await admin
+      .from("cloned_voices")
+      .select("voice_id")
+      .eq("voice_id", voice_id)
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+    if (data) resolvedVoiceId = voice_id;
+  }
+
   const payload = {
     prompt,
-    voice_id: VOICE_IDS.has(voice_id) ? voice_id : "Friendly_Person",
+    voice_id: resolvedVoiceId,
   };
 
   try {

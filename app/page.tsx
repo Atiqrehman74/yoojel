@@ -531,18 +531,17 @@ export default function Home() {
               </>
             )}
           </div>
-          <div className="hidden items-center gap-1 md:flex">
+          <div className="hidden items-center gap-1 lg:flex">
             {HEADER_APPS.map((app) => {
               const Icon = app.icon;
               return (
                 <Link
                   key={app.href}
                   href={app.href}
-                  title={app.label}
-                  aria-label={app.label}
-                  className="rounded-lg p-2 text-gray-400 hover:bg-hover hover:text-gray-200"
+                  className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm text-gray-400 hover:bg-hover hover:text-gray-200"
                 >
-                  <Icon size={18} />
+                  <Icon size={16} className="flex-shrink-0" />
+                  {app.label}
                 </Link>
               );
             })}

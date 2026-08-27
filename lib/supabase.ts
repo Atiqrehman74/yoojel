@@ -10,6 +10,13 @@ export type Profile = {
   message_count: number
   is_admin: boolean
   created_at: string
+  // Monthly generation usage counters -- optional since the quick
+  // JWT-derived profile shown before the /api/profile round-trip doesn't
+  // have these.
+  image_count?: number
+  video_count?: number
+  voice_count?: number
+  usage_period?: string
 }
 
 const rawUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? ''

@@ -117,12 +117,6 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
     }
   };
 
-  const manageSubscription = async () => {
-    const res = await fetch('/api/stripe/portal', { method: 'POST' });
-    const { url } = await res.json();
-    if (url) window.location.href = url;
-  };
-
   const initials = profile
     ? (profile.full_name ?? profile.email).split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
     : 'U';
@@ -356,9 +350,9 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
                   </Link>
                 )}
                 {profile?.plan === 'pro' && (
-                  <button onClick={manageSubscription} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-200 hover:bg-white/5">
+                  <Link href="/account" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-200 hover:bg-white/5">
                     <Crown size={15} className="text-amber-400" /> Manage Subscription
-                  </button>
+                  </Link>
                 )}
                 {(profile || hasSession) && (
                   <button onClick={signOut} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-white/5">

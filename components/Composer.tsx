@@ -43,10 +43,6 @@ export default function Composer({
   const [listening, setListening] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  // Voice mode's entry point is temporarily disabled -- the feature itself
-  // (voiceMode hook, VoiceModeOverlay) is untouched so it's a one-line
-  // revert to re-enable.
-  const [voiceModeToast, setVoiceModeToast] = useState(false);
   const recordingRef = useRef<ActiveRecording | null>(null);
   const textBeforeListeningRef = useRef("");
 
@@ -320,24 +316,13 @@ export default function Composer({
               >
                 <Mic size={20} />
               </button>
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setVoiceModeToast(true);
-                    setTimeout(() => setVoiceModeToast(false), 2000);
-                  }}
-                  className="cursor-not-allowed rounded-full bg-white/40 p-2 text-black/50"
-                  aria-label="Voice mode — coming soon"
-                  title="Voice mode — coming soon"
-                >
-                  <AudioLines size={20} />
-                </button>
-                {voiceModeToast && (
-                  <div className="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-[#2a2a2a] px-2.5 py-1.5 text-xs text-gray-200 shadow-lg">
-                    Coming soon
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={voiceMode.start}
+                className="rounded-full bg-white p-2 text-black hover:opacity-90"
+                aria-label="Voice mode"
+              >
+                <AudioLines size={20} />
+              </button>
             </div>
           ) : (
             <button

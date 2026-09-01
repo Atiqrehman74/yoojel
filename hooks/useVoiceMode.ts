@@ -7,10 +7,7 @@ import type { Attachment, ChatMessage } from "@/lib/types";
 
 export type VoiceModePhase = "listening" | "thinking" | "speaking";
 
-const VOICE_MODE_TTS_VOICE = "Friendly_Person";
 const VOICE_MODE_MAX_CHARS = 1800;
-const VOICE_MODE_POLL_MS = 2000;
-const VOICE_MODE_MAX_POLL_ATTEMPTS = 90;
 const DEFAULT_VOICE_LANG = "en-US";
 const MIN_CHUNK_CHARS = 8;
 const FORCE_FLUSH_CHARS = 260; // don't let one chunk grow unbounded on punctuation-sparse text
@@ -69,6 +66,7 @@ export function useVoiceMode({
 
   const activeRecordingRef = useRef<SilenceRecording | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
   const waitingForReplyRef = useRef(false);
   const activeRef = useRef(false);
 
@@ -171,44 +169,24 @@ export function useVoiceMode({
 
     try {
       const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
-      const submitRes = await fetch("/api/voice/submit", {
+      const res = await fetch("/api/voice/omnivoice", {
         method: "POST",
         headers,
-        body: JSON.stringify({ prompt: clean, voice_id: VOICE_MODE_TTS_VOICE }),
+        body: JSON.stringify({ text: clean }),
       });
-      const submitData = await submitRes.json();
-      if (!submitRes.ok) {
-        setError(submitData.error || "Couldn't speak the reply.");
-        processingQueueRef.current = false;
-        if (activeRef.current) processQueue();
-        return;
-      }
-
-      const pollHeaders = await authHeaders();
-      let url: string | null = null;
-      for (let attempt = 0; attempt < VOICE_MODE_MAX_POLL_ATTEMPTS; attempt++) {
-        await new Promise((r) => setTimeout(r, VOICE_MODE_POLL_MS));
-        if (!activeRef.current) return;
-        const res = await fetch(`/api/voice/result?id=${encodeURIComponent(submitData.requestId)}`, {
-          headers: pollHeaders,
-        });
-        const data = await res.json();
-        if (!res.ok || data.status === "failed") {
-          setError(data.error || "Couldn't speak the reply.");
-          break;
-        }
-        if (data.status === "done") {
-          url = data.url;
-          break;
-        }
-      }
-
       if (!activeRef.current) return;
-      if (!url) {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Couldn't speak the reply.");
         processingQueueRef.current = false;
         if (activeRef.current) processQueue();
         return;
       }
+
+      const blob = await res.blob();
+      if (!activeRef.current) return;
+      const url = URL.createObjectURL(blob);
+      audioUrlRef.current = url;
 
       setPhase("speaking");
       const audio = new Audio(url);
@@ -216,6 +194,10 @@ export function useVoiceMode({
       const advance = () => {
         processingQueueRef.current = false;
         audioRef.current = null;
+        if (audioUrlRef.current) {
+          URL.revokeObjectURL(audioUrlRef.current);
+          audioUrlRef.current = null;
+        }
         if (activeRef.current) processQueue();
       };
       audio.onended = advance;

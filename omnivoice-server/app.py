@@ -79,6 +79,15 @@ class OmniVoiceServer:
             speed=body.speed,
         )
 
+        # soundfile defaults a float array to 32-bit IEEE-float WAV, which
+        # decodes fine in Python but many browsers (Safari/iOS especially)
+        # can't natively decode -- it plays as static instead of erroring.
+        # Force 16-bit PCM, which every browser supports, and clip first so
+        # any sample slightly outside [-1, 1] doesn't wrap around instead of
+        # clamping.
+        import numpy as np
+
+        audio = np.clip(audios[0], -1.0, 1.0)
         buf = io.BytesIO()
-        sf.write(buf, audios[0], self.model.sampling_rate, format="WAV")
+        sf.write(buf, audio, self.model.sampling_rate, format="WAV", subtype="PCM_16")
         return Response(content=buf.getvalue(), media_type="audio/wav")

@@ -164,7 +164,7 @@ export default function ProjectDetailsPage() {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-sm text-gray-100 outline-none focus:border-white/30"
+          className="mb-4 w-full rounded-lg border border-white/10 bg-[#141a30] px-3 py-2 text-sm text-gray-100 outline-none focus:border-white/30"
         />
 
         <label className="mb-1 block text-xs font-medium text-gray-500">Description</label>
@@ -172,7 +172,7 @@ export default function ProjectDetailsPage() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
-          className="mb-1 w-full resize-none rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-sm text-gray-100 outline-none focus:border-white/30"
+          className="mb-1 w-full resize-none rounded-lg border border-white/10 bg-[#141a30] px-3 py-2 text-sm text-gray-100 outline-none focus:border-white/30"
         />
         {project && (
           <p className="mb-1 text-[11px] text-gray-500">

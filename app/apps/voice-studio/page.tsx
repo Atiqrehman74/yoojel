@@ -277,7 +277,7 @@ export default function VoiceStudioPage() {
               <select
                 value={voiceId}
                 onChange={(e) => setVoiceId(e.target.value)}
-                className="rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-xs text-gray-100 outline-none focus:border-brand"
+                className="rounded-lg border border-white/10 bg-[#141a30] px-3 py-2 text-xs text-gray-100 outline-none focus:border-brand"
               >
                 {clonedVoices.length > 0 && (
                   <optgroup label="My cloned voices">
@@ -347,7 +347,7 @@ export default function VoiceStudioPage() {
                 value={cloneName}
                 onChange={(e) => setCloneName(e.target.value.slice(0, 40))}
                 placeholder="Name this voice, e.g. 'My voice'"
-                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-1.5 text-xs text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#141a30] px-3 py-1.5 text-xs text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
               />
             </div>
 

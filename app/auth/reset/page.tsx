@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+                className="w-full rounded-xl border border-white/10 bg-[#141a30] px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
               />
               <input
                 type="password"
@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 minLength={6}
-                className="w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+                className="w-full rounded-xl border border-white/10 bg-[#141a30] px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
               />
               {error && <p className="text-xs text-red-400">{error}</p>}
               <button

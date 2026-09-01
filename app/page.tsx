@@ -430,7 +430,7 @@ export default function Home() {
   const voiceMode = useVoiceMode({ onSend: sendMessage, streaming, messages });
 
   return (
-    <div className="flex h-dvh w-screen overflow-hidden bg-main">
+    <div className="bg-glow flex h-dvh w-screen overflow-hidden">
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -443,7 +443,7 @@ export default function Home() {
       {showUpgradeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={() => setShowUpgradeModal(false)} />
-          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#2a2a2a] p-6 shadow-2xl">
+          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#212a4a] p-6 shadow-2xl">
             <button
               onClick={() => setShowUpgradeModal(false)}
               className="absolute right-4 top-4 text-gray-400 hover:text-gray-200"
@@ -510,7 +510,7 @@ export default function Home() {
                   className="fixed inset-0 z-10"
                   onClick={() => setModelMenu(false)}
                 />
-                <div className="absolute z-20 mt-1 w-72 rounded-2xl border border-white/10 bg-[#2a2a2a] p-1.5 shadow-2xl md:w-80">
+                <div className="absolute z-20 mt-1 w-72 rounded-2xl border border-white/10 bg-[#212a4a] p-1.5 shadow-2xl md:w-80">
                   {MODELS.map((m) => (
                     <button
                       key={m.id}

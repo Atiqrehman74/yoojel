@@ -65,7 +65,7 @@ export default function MessageList({ messages, streaming }: Props) {
               </div>
             ) : (
               <div className="flex w-full gap-3 md:gap-4">
-                <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#1a1a1a] md:h-8 md:w-8">
+                <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#141a30] md:h-8 md:w-8">
                   <img src="/yoojel-insignia.png" alt="Yoojel" className="h-6 w-6 object-contain md:h-7 md:w-7" />
                 </div>
                 <div className="min-w-0 flex-1 pt-0.5">

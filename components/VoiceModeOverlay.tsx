@@ -37,7 +37,7 @@ export default function VoiceModeOverlay({
 }) {
   const interruptible = phase === "speaking";
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-main px-6 py-16">
+    <div className="bg-glow fixed inset-0 z-50 flex flex-col items-center justify-between px-6 py-16">
       <div className="flex flex-1 flex-col items-center justify-center gap-8">
         <button
           onClick={interruptible ? onInterrupt : undefined}

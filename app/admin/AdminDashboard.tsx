@@ -76,7 +76,7 @@ export default function AdminDashboard({ users, stats, adminEmail }: Props) {
         <div className="rounded-2xl border border-white/10 bg-sidebar">
           <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
             <h2 className="text-sm font-semibold text-gray-300">All Users</h2>
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-1.5">
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#141a30] px-3 py-1.5">
               <Search size={14} className="text-gray-400" />
               <input
                 type="text"

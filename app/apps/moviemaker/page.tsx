@@ -20,7 +20,7 @@ const JOURNEY = [
 ];
 
 const inputClass =
-  "w-full rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand";
+  "w-full rounded-lg border border-white/10 bg-[#141a30] px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand";
 const labelClass = "mb-1.5 block text-xs font-medium text-gray-400";
 
 export default function MovieMakerPage() {

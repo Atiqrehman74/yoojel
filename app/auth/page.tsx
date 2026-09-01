@@ -94,13 +94,13 @@ export default function AuthPage() {
           {tab !== "forgot" && (
             <>
               {/* Tabs */}
-              <div className="mb-6 flex rounded-xl bg-[#1a1a1a] p-1">
+              <div className="mb-6 flex rounded-xl bg-[#141a30] p-1">
                 {(["signin", "register"] as const).map((t) => (
                   <button
                     key={t}
                     onClick={() => switchTab(t)}
                     className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                      tab === t ? "bg-[#2a2a2a] text-white" : "text-gray-400 hover:text-gray-200"
+                      tab === t ? "bg-[#212a4a] text-white" : "text-gray-400 hover:text-gray-200"
                     }`}
                   >
                     {t === "signin" ? "Sign In" : "Register"}
@@ -152,7 +152,7 @@ export default function AuthPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+                className="w-full rounded-xl border border-white/10 bg-[#141a30] px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
               />
             )}
             <input
@@ -161,7 +161,7 @@ export default function AuthPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+              className="w-full rounded-xl border border-white/10 bg-[#141a30] px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
             />
             {tab !== "forgot" && (
               <div className="relative">
@@ -172,7 +172,7 @@ export default function AuthPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-2.5 pr-10 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+                  className="w-full rounded-xl border border-white/10 bg-[#141a30] px-4 py-2.5 pr-10 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
                 />
                 <button
                   type="button"

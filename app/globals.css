@@ -5,10 +5,17 @@
 html,
 body {
   height: 100%;
-  background: #212121;
+  background: #0a0e1a;
   color: #ececec;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Midnight-blue ambient glow -- a soft indigo radial glow rising from the
+   bottom of the screen, applied to the app's main full-screen surfaces. */
+.bg-glow {
+  background-color: #0a0e1a;
+  background-image: radial-gradient(ellipse 80% 50% at 50% 100%, rgba(79, 107, 255, 0.35), transparent 70%);
 }
 
 * {

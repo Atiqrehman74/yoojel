@@ -8,13 +8,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ChatGPT-style dark palette
-        sidebar: "#171717",
-        main: "#212121",
-        bubble: "#2f2f2f",
-        composer: "#303030",
-        hover: "#2a2a2a",
-        brand: "#10a37f",
+        // Midnight-blue companion-app palette (dark navy + indigo glow)
+        sidebar: "#05070d",
+        main: "#0a0e1a",
+        bubble: "#131a2e",
+        composer: "#10162a",
+        hover: "#1b2340",
+        brand: "#4f6bff",
       },
       fontFamily: {
         sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Helvetica", "Arial", "sans-serif"],

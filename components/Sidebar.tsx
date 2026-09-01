@@ -212,7 +212,7 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
               placeholder="Search conversations…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-white/30"
+              className="w-full rounded-lg border border-white/10 bg-[#141a30] px-3 py-2 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-white/30"
             />
           </div>
         )}
@@ -276,7 +276,7 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
                 {projectMenuFor === c.id && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setProjectMenuFor(null); }} />
-                    <div className="absolute right-0 top-9 z-20 w-48 rounded-xl border border-white/10 bg-[#2a2a2a] p-1 shadow-2xl">
+                    <div className="absolute right-0 top-9 z-20 w-48 rounded-xl border border-white/10 bg-[#212a4a] p-1 shadow-2xl">
                       {c.projectId && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onAssignProject(c.id, null); setProjectMenuFor(null); }}
@@ -326,7 +326,7 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
             onClick={() => setMenuOpen(v => !v)}
             className="flex w-full items-center gap-3 rounded-lg px-2 py-2 hover:bg-hover"
           >
-            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold">
+            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold">
               {initials}
             </div>
             <div className="min-w-0 flex-1 text-left text-sm">
@@ -343,7 +343,7 @@ export default function Sidebar({ open, onToggle, conversations, activeId, onSel
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute bottom-14 left-3 right-3 z-20 rounded-xl border border-white/10 bg-[#2a2a2a] p-1 shadow-2xl">
+              <div className="absolute bottom-14 left-3 right-3 z-20 rounded-xl border border-white/10 bg-[#212a4a] p-1 shadow-2xl">
                 {!profile && !hasSession && (
                   <Link href="/auth" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-200 hover:bg-white/5">
                     Sign In / Register

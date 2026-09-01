@@ -176,7 +176,7 @@ export default function ProjectsPage() {
           onClick={() => !saving && setCreating(false)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#1c1c1c] p-6"
+            className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#161d34] p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-5 flex items-center justify-between">
@@ -197,7 +197,7 @@ export default function ProjectsPage() {
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && createProject()}
               placeholder="Name your project"
-              className="mb-5 w-full rounded-lg border border-white/15 bg-[#141414] px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+              className="mb-5 w-full rounded-lg border border-white/15 bg-[#0e1326] px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
             />
 
             <label className="mb-1.5 block text-sm font-medium text-gray-200">What are you trying to achieve?</label>
@@ -206,7 +206,7 @@ export default function ProjectsPage() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your project, goals, subject, etc..."
               rows={4}
-              className="mb-2 w-full resize-none rounded-lg border border-white/15 bg-[#141414] px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
+              className="mb-2 w-full resize-none rounded-lg border border-white/15 bg-[#0e1326] px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-brand"
             />
 
             {error && <p className="mb-2 text-xs text-red-300">{error}</p>}

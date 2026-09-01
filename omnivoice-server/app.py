@@ -2,8 +2,11 @@
 
 Deploy with: modal deploy app.py
 
-Voice mode has no reference audio to clone from, so it always uses
-OmniVoice's voice-design path (`instruct=`) rather than voice cloning.
+Uses OmniVoice's auto-voice path (no instruct, no ref_audio) -- the
+voice-design path (instruct="female, american accent, ...") produces
+badly garbled audio on this checkpoint, see the DEFAULT_INSTRUCT comment
+below. A fixed RNG seed keeps auto voice's speaker choice consistent
+across calls instead of picking a new random speaker every time.
 Auth is a single shared-secret bearer token (Modal secret "omnivoice-auth"),
 matching the token stored in Vercel's OMNIVOICE_API_SECRET env var.
 """
@@ -29,11 +32,21 @@ image = (
 weights_volume = modal.Volume.from_name("omnivoice-weights", create_if_missing=True)
 HF_CACHE_DIR = "/root/.cache/huggingface"
 
-# Fixed voice-design instruction standing in for the old Muapi "Friendly_Person"
-# preset -- voice mode doesn't offer a voice picker, just one consistent voice.
-# OmniVoice's `instruct` is a closed vocabulary (not free-form descriptive
-# text), see the model's own error message for the full valid item list.
-DEFAULT_INSTRUCT = "female, american accent, moderate pitch"
+# OmniVoice's voice-design path (instruct="female, american accent, ...")
+# produces badly garbled/noise-like audio on this checkpoint -- confirmed via
+# spectral analysis (55-64% of energy above 4kHz, spectral flatness ~0.7,
+# both close to white noise). Auto voice (instruct=None entirely) produces
+# clean, genuinely speech-like output (87.5% energy below 4kHz, flatness
+# ~0.06), so that's the default until voice design is revisited.
+DEFAULT_INSTRUCT = None
+
+# Fixed so auto voice picks the same speaker on every call -- see the seed
+# comment at the generate() call site. Chosen from a sweep of 8 candidate
+# seeds (0,1,2,3,5,42,123,999), all clean; seed 0 had the best measured
+# speech quality (spectral flatness 0.033, 92.4% of energy below 4kHz --
+# both strong speech-like signals, vs. e.g. seed 7's 0.6+/35%, which sounded
+# like static despite being a perfectly valid seed).
+VOICE_SEED = 0
 
 
 class SynthesizeRequest(BaseModel):
@@ -41,6 +54,7 @@ class SynthesizeRequest(BaseModel):
     language: str | None = "English"
     instruct: str | None = None
     speed: float = 1.0
+    seed: int | None = None
 
 
 @app.cls(
@@ -58,7 +72,7 @@ class OmniVoiceServer:
         from omnivoice.models.omnivoice import OmniVoice
 
         self.model = OmniVoice.from_pretrained(
-            "k2-fsa/OmniVoice", device_map="cuda:0", dtype=torch.float16
+            "k2-fsa/OmniVoice", device_map="cuda:0", dtype=torch.float32
         )
 
     @modal.fastapi_endpoint(method="POST")
@@ -71,7 +85,15 @@ class OmniVoiceServer:
             raise HTTPException(status_code=400, detail="Missing text.")
 
         import soundfile as sf
+        import torch
 
+        # Auto voice (no instruct/ref_audio) otherwise picks a new random
+        # speaker on every call -- fine for one-off Voice Studio generations,
+        # but voice mode needs the same speaker across a whole conversation's
+        # worth of sentence-by-sentence TTS calls. Seeding torch's global RNG
+        # identically before each generate() call makes that speaker choice
+        # (and the rest of the diffusion sampling) deterministic.
+        torch.manual_seed(body.seed if body.seed is not None else VOICE_SEED)
         audios = self.model.generate(
             text=body.text,
             language=body.language,

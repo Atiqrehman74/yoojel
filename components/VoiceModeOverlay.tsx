@@ -10,16 +10,10 @@ const PHASE_LABEL: Record<VoiceModePhase, string> = {
   speaking: "Speaking…",
 };
 
-const PHASE_RING: Record<VoiceModePhase, string> = {
-  listening: "from-cyan-400/50 to-cyan-600/30",
-  thinking: "from-gray-400/40 to-gray-600/20",
-  speaking: "from-purple-400/50 to-purple-600/30",
-};
-
-const PHASE_LOGO_CLASS: Record<VoiceModePhase, string> = {
-  listening: "voice-logo-listening",
-  thinking: "voice-logo-thinking",
-  speaking: "voice-logo-speaking",
+const PHASE_ORB_CLASS: Record<VoiceModePhase, string> = {
+  listening: "siri-orb-listening",
+  thinking: "siri-orb-thinking",
+  speaking: "siri-orb-speaking",
 };
 
 export default function VoiceModeOverlay({
@@ -43,16 +37,11 @@ export default function VoiceModeOverlay({
           onClick={interruptible ? onInterrupt : undefined}
           disabled={!interruptible}
           aria-label={interruptible ? "Interrupt and speak" : undefined}
-          className={`flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-br ${PHASE_RING[phase]} ${
-            interruptible ? "cursor-pointer" : "cursor-default"
-          }`}
+          className={`siri-orb ${PHASE_ORB_CLASS[phase]} ${interruptible ? "cursor-pointer" : "cursor-default"}`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/yoojel-insignia.png"
-            alt=""
-            className={`h-24 w-24 object-contain ${PHASE_LOGO_CLASS[phase]}`}
-          />
+          <span className="siri-blob siri-blob-a" />
+          <span className="siri-blob siri-blob-b" />
+          <span className="siri-blob siri-blob-c" />
         </button>
         <p className="text-lg font-medium text-gray-200">{PHASE_LABEL[phase]}</p>
         {interruptible && (

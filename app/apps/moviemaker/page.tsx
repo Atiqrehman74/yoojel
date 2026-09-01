@@ -99,7 +99,7 @@ export default function MovieMakerPage() {
         <Link href="/apps" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to Apps">
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="text-sm font-semibold">Yoojel MovieMaker</h1>
+        <h1 className="text-sm font-bold">Yoojel MovieMaker</h1>
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
@@ -122,7 +122,7 @@ export default function MovieMakerPage() {
 
         {/* Runtime */}
         <div className="mt-12 border-t border-white/10 pt-8">
-          <h3 className="text-xl font-semibold">Create Up to a 240-Minute Feature Film</h3>
+          <h3 className="text-xl font-bold">Create Up to a 240-Minute Feature Film</h3>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-gray-400">
             Yoojel MovieMaker is being developed to support the creation of feature-length
             productions of up to 240 minutes, combining AI, 3D, VFX, animation, and cinematic
@@ -137,7 +137,7 @@ export default function MovieMakerPage() {
 
         {/* Custom development */}
         <div className="mt-12 border-t border-white/10 pt-8">
-          <h3 className="text-xl font-semibold">Custom Movie Development</h3>
+          <h3 className="text-xl font-bold">Custom Movie Development</h3>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-gray-400">
             Every story is different. Yoojel MovieMaker will offer custom development
             capabilities for filmmakers, studios, brands, creators, and enterprises looking to
@@ -147,7 +147,7 @@ export default function MovieMakerPage() {
 
         {/* Production journey */}
         <div className="mt-12 border-t border-white/10 pt-8">
-          <h3 className="text-xl font-semibold">Built for the Complete Production Journey</h3>
+          <h3 className="text-xl font-bold">Built for the Complete Production Journey</h3>
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {JOURNEY.map((item) => (
               <div key={item} className="flex items-center gap-2 rounded-lg border border-white/10 bg-bubble px-3 py-2.5 text-sm">
@@ -160,7 +160,7 @@ export default function MovieMakerPage() {
 
         {/* Cinematic universe */}
         <div className="mt-12 border-t border-white/10 pt-8">
-          <h3 className="text-xl font-semibold">From One Idea to an Entire Cinematic Universe</h3>
+          <h3 className="text-xl font-bold">From One Idea to an Entire Cinematic Universe</h3>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-gray-400">
             Imagine describing your world, your characters, and your story — and having an
             intelligent production ecosystem help transform those ideas into cinematic reality.
@@ -172,7 +172,7 @@ export default function MovieMakerPage() {
 
         {/* Form */}
         <div className="mt-12 border-t border-white/10 pt-8">
-          <h3 className="text-xl font-semibold">Submit Your Movie Project</h3>
+          <h3 className="text-xl font-bold">Submit Your Movie Project</h3>
           <p className="mt-1 text-sm text-gray-400">
             Whether you have a complete screenplay or only a concept, submit your project for
             early consideration.
@@ -282,7 +282,7 @@ export default function MovieMakerPage() {
 
         {/* Closing */}
         <div className="mt-12 border-t border-white/10 pt-8 text-center">
-          <h3 className="text-lg font-semibold">The Future of Filmmaking Is Being Rewritten.</h3>
+          <h3 className="text-lg font-bold">The Future of Filmmaking Is Being Rewritten.</h3>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-gray-400">
             A feature film no longer has to begin with a massive studio, hundreds of
             departments, and years of traditional production. The next generation of cinema

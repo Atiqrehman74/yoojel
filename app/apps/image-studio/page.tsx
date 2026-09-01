@@ -167,7 +167,7 @@ export default function ImageStudioPage() {
           >
             <ArrowLeft size={18} />
           </Link>
-          <h1 className="text-sm font-semibold">Image Studio</h1>
+          <h1 className="text-sm font-bold">Image Studio</h1>
         </div>
         <Link
           href="/library?kind=image"

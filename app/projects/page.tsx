@@ -102,7 +102,7 @@ export default function ProjectsPage() {
           <Link href="/" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to chat">
             <ArrowLeft size={18} />
           </Link>
-          <h1 className="text-sm font-semibold">Projects</h1>
+          <h1 className="text-sm font-bold">Projects</h1>
         </header>
         <main className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-24 text-center">
           <FolderClosed size={28} className="text-gray-500" />
@@ -121,7 +121,7 @@ export default function ProjectsPage() {
         <Link href="/" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to chat">
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="text-sm font-semibold">Projects</h1>
+        <h1 className="text-sm font-bold">Projects</h1>
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8">
@@ -180,7 +180,7 @@ export default function ProjectsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Create a project</h2>
+              <h2 className="text-xl font-bold">Create a project</h2>
               <button
                 onClick={() => setCreating(false)}
                 className="rounded-lg p-1 text-gray-400 hover:bg-hover hover:text-gray-200"

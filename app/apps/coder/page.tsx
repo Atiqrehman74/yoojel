@@ -286,7 +286,7 @@ export default function CoderPage() {
           >
             <ArrowLeft size={18} />
           </Link>
-          <h1 className="text-sm font-semibold">Yoojel Coder</h1>
+          <h1 className="text-sm font-bold">Yoojel Coder</h1>
         </div>
         <Link
           href="/library?kind=code"

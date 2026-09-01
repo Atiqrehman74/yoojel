@@ -17,7 +17,16 @@ const config: Config = {
         brand: "#4f6bff",
       },
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Helvetica", "Arial", "sans-serif"],
+        sans: [
+          "var(--font-quicksand)",
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "Helvetica",
+          "Arial",
+          "sans-serif",
+        ],
       },
     },
   },

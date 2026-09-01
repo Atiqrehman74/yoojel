@@ -453,7 +453,7 @@ export default function Home() {
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-400/10">
               <Crown size={24} className="text-amber-400" />
             </div>
-            <h2 className="mb-2 text-lg font-semibold text-gray-100">
+            <h2 className="mb-2 text-lg font-bold text-gray-100">
               Search limit reached
             </h2>
             <p className="mb-5 text-sm text-gray-400">
@@ -586,7 +586,7 @@ export default function Home() {
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-4">
-              <h1 className="mb-6 text-2xl font-semibold text-gray-100 md:mb-8 md:text-3xl">
+              <h1 className="mb-6 text-2xl font-bold text-gray-100 md:mb-8 md:text-3xl">
                 {imageMode ? "Describe the image to create" : "What can I help with?"}
               </h1>
               <div className="w-full max-w-3xl">

@@ -58,7 +58,7 @@ export default function AdminDashboard({ users, stats, adminEmail }: Props) {
 
         {/* Plan breakdown */}
         <div className="mb-8 rounded-2xl border border-white/10 bg-sidebar p-6">
-          <h2 className="mb-4 text-sm font-semibold text-gray-300">Plan Distribution</h2>
+          <h2 className="mb-4 text-sm font-bold text-gray-300">Plan Distribution</h2>
           <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full bg-amber-400 transition-all"
@@ -75,7 +75,7 @@ export default function AdminDashboard({ users, stats, adminEmail }: Props) {
         {/* Users Table */}
         <div className="rounded-2xl border border-white/10 bg-sidebar">
           <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-            <h2 className="text-sm font-semibold text-gray-300">All Users</h2>
+            <h2 className="text-sm font-bold text-gray-300">All Users</h2>
             <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#141a30] px-3 py-1.5">
               <Search size={14} className="text-gray-400" />
               <input

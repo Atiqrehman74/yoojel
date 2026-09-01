@@ -291,7 +291,7 @@ function LibraryContent() {
         <Link href="/apps" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to Apps">
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="text-sm font-semibold">Library</h1>
+        <h1 className="text-sm font-bold">Library</h1>
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8">

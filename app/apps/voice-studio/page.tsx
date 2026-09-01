@@ -232,7 +232,7 @@ export default function VoiceStudioPage() {
         >
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="text-sm font-semibold">Voice Studio</h1>
+        <h1 className="text-sm font-bold">Voice Studio</h1>
       </header>
 
       <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">

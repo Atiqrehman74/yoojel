@@ -83,7 +83,7 @@ export default function CorporatePage() {
         <Link href="/apps" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to Apps">
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="text-sm font-semibold">Yoojel Corporate</h1>
+        <h1 className="text-sm font-bold">Yoojel Corporate</h1>
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
@@ -103,7 +103,7 @@ export default function CorporatePage() {
 
         {/* Efficiency section */}
         <div className="mt-12 border-t border-white/10 pt-8">
-          <h3 className="text-xl font-semibold">From 5,000 Employees to the Efficiency of 2,500</h3>
+          <h3 className="text-xl font-bold">From 5,000 Employees to the Efficiency of 2,500</h3>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-gray-400">
             Yoojel Corporate is designed to help organizations achieve the operational capacity
             of a 5,000-person workforce with approximately 2,500 employees, through intelligent
@@ -121,7 +121,7 @@ export default function CorporatePage() {
 
         {/* Future of work */}
         <div className="mt-12 border-t border-white/10 pt-8">
-          <h3 className="text-xl font-semibold">The Future of Work Is Intelligent</h3>
+          <h3 className="text-xl font-bold">The Future of Work Is Intelligent</h3>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-gray-400">
             Yoojel Corporate combines AI, automation, enterprise intelligence, and human
             expertise to help businesses streamline operations and focus their teams on
@@ -134,7 +134,7 @@ export default function CorporatePage() {
 
         {/* Form */}
         <div className="mt-12 border-t border-white/10 pt-8">
-          <h3 className="text-xl font-semibold">Get Early Access</h3>
+          <h3 className="text-xl font-bold">Get Early Access</h3>
           <p className="mt-1 text-sm text-gray-400">
             Join the Yoojel Corporate early-access list and be among the first organizations to
             explore the platform.
@@ -255,7 +255,7 @@ export default function CorporatePage() {
 
         {/* Closing */}
         <div className="mt-12 border-t border-white/10 pt-8 text-center">
-          <h3 className="text-lg font-semibold">Be Part of the Corporate Transformation</h3>
+          <h3 className="text-lg font-bold">Be Part of the Corporate Transformation</h3>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-gray-400">
             The future of enterprise isn&apos;t about hiring more people. It&apos;s about
             empowering fewer people with dramatically more intelligence.

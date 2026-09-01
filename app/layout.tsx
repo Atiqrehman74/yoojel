@@ -1,5 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { Quicksand } from "next/font/google";
 import "./globals.css";
+
+const quicksand = Quicksand({
+  subsets: ["latin"],
+  weight: "variable",
+  variable: "--font-quicksand",
+});
 
 export const metadata: Metadata = {
   title: "Yoojel — AI Assistant",
@@ -39,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={quicksand.variable}>
       <body>{children}</body>
     </html>
   );

@@ -162,7 +162,7 @@ export default function VideoStudioPage() {
           >
             <ArrowLeft size={18} />
           </Link>
-          <h1 className="text-sm font-semibold">Video Studio</h1>
+          <h1 className="text-sm font-bold">Video Studio</h1>
         </div>
         <Link
           href="/library?kind=video"

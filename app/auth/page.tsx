@@ -135,7 +135,7 @@ export default function AuthPage() {
               <button onClick={() => switchTab("signin")} className="mb-4 text-xs text-gray-400 hover:text-white">
                 ← Back to Sign In
               </button>
-              <h2 className="text-lg font-semibold text-white">Reset Password</h2>
+              <h2 className="text-lg font-bold text-white">Reset Password</h2>
               <p className="mt-1 text-sm text-gray-400">Enter your email and we&apos;ll send a reset link.</p>
             </div>
           )}

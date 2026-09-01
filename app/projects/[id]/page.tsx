@@ -119,7 +119,7 @@ export default function ProjectDetailsPage() {
           <Link href="/" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to chat">
             <ArrowLeft size={18} />
           </Link>
-          <h1 className="text-sm font-semibold">Project</h1>
+          <h1 className="text-sm font-bold">Project</h1>
         </header>
         <main className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-24 text-center">
           <p className="text-sm text-gray-400">Sign in to view this project.</p>
@@ -138,7 +138,7 @@ export default function ProjectDetailsPage() {
           <Link href="/projects" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to Projects">
             <ArrowLeft size={18} />
           </Link>
-          <h1 className="text-sm font-semibold">Project</h1>
+          <h1 className="text-sm font-bold">Project</h1>
         </header>
         <main className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-24 text-center">
           <p className="text-sm text-gray-400">Project not found.</p>
@@ -156,7 +156,7 @@ export default function ProjectDetailsPage() {
         <Link href="/projects" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to Projects">
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="text-sm font-semibold">Project details</h1>
+        <h1 className="text-sm font-bold">Project details</h1>
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-8">

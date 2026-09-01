@@ -57,7 +57,7 @@ export default function VoiceInputModal({
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-orange-400/30 to-orange-600/30">
             <Mic size={32} className="text-gray-200" />
           </div>
-          <h2 className="mt-6 text-xl font-semibold leading-snug text-gray-100">
+          <h2 className="mt-6 text-xl font-bold leading-snug text-gray-100">
             Send messages to Yoojel using your voice.
           </h2>
 

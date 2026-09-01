@@ -66,7 +66,7 @@ export default function AppsPage() {
         >
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="text-sm font-semibold">Apps</h1>
+        <h1 className="text-sm font-bold">Apps</h1>
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8">

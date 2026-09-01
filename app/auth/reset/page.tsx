@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-sidebar p-8">
-          <h2 className="mb-1 text-lg font-semibold text-white">Set New Password</h2>
+          <h2 className="mb-1 text-lg font-bold text-white">Set New Password</h2>
           <p className="mb-6 text-sm text-gray-400">Enter a new password for your account.</p>
 
           {success ? (

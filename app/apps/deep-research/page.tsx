@@ -368,7 +368,7 @@ export default function DeepResearchPage() {
           <Link href="/apps" className="rounded-lg p-1.5 text-gray-400 hover:bg-hover hover:text-gray-200" aria-label="Back to Apps">
             <ArrowLeft size={18} />
           </Link>
-          <h1 className="text-sm font-semibold">Deep Research</h1>
+          <h1 className="text-sm font-bold">Deep Research</h1>
         </div>
         <Link
           href="/library?kind=research"

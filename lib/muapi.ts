@@ -59,6 +59,19 @@ export function muapiOutputUrl(result: MuapiPollResult): string | undefined {
   return result.outputs?.[0] || result.url || result.output?.url;
 }
 
+// Wraps a Muapi-hosted output URL (image/video/audio) into a same-origin
+// /dl/... link via app/dl/[slug]/route.ts, so the browser (and anything a
+// user shares/downloads) never shows cdn.muapi.ai. The full upstream URL is
+// base64url-encoded into the path itself -- no server-side URL table needed
+// -- with the original extension kept as a literal suffix so downloads still
+// get a sensible filename.
+export function toDownloadUrl(muapiUrl: string | undefined): string | undefined {
+  if (!muapiUrl) return muapiUrl;
+  const encoded = Buffer.from(muapiUrl, "utf8").toString("base64url");
+  const ext = muapiUrl.match(/\.([a-zA-Z0-9]{2,5})(?:[?#]|$)/)?.[1] || "bin";
+  return `/dl/${encoded}.${ext}`;
+}
+
 // Uploads a file to Muapi's hosting (POST /api/v1/upload_file, multipart
 // field name "file") and returns the hosted URL -- needed for models like
 // openai-whisper that take an audio_url rather than accepting raw bytes.

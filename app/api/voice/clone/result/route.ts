@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireProUser } from "@/lib/requireProUser";
-import { muapiPoll, muapiOutputUrl } from "@/lib/muapi";
+import { muapiPoll, muapiOutputUrl, toDownloadUrl } from "@/lib/muapi";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const status = result.status?.toLowerCase();
 
     if (status === "completed" || status === "succeeded" || status === "success") {
-      const previewUrl = muapiOutputUrl(result);
+      const previewUrl = toDownloadUrl(muapiOutputUrl(result));
       const { data, error } = await admin()
         .from("cloned_voices")
         .insert({ user_id: auth.userId, voice_id: voiceId, name, preview_url: previewUrl })

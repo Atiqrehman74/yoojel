@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
-import { muapiPoll, muapiOutputUrl } from "@/lib/muapi";
+import { muapiPoll, muapiOutputUrl, toDownloadUrl } from "@/lib/muapi";
 
 // Shared poll handler for /api/image/result and /api/video/result -- both
 // generation kinds submit a Muapi job and poll it identically.
@@ -24,7 +24,7 @@ export async function handleGenerationResult(req: NextRequest, notConfiguredMess
     const result = await muapiPoll(requestId, key);
     const status = result.status?.toLowerCase();
     if (status === "completed" || status === "succeeded" || status === "success") {
-      return Response.json({ status: "done", url: muapiOutputUrl(result) });
+      return Response.json({ status: "done", url: toDownloadUrl(muapiOutputUrl(result)) });
     }
     if (status === "failed" || status === "error") {
       return Response.json({ status: "failed", error: result.error || "Generation failed." });

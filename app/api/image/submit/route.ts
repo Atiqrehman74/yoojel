@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
-import { muapiSubmit, muapiOutputUrl, muapiUploadFile } from "@/lib/muapi";
+import { muapiSubmit, muapiOutputUrl, muapiUploadFile, toDownloadUrl } from "@/lib/muapi";
 import { checkAndIncrementUsage, IMAGE_MONTHLY_LIMIT } from "@/lib/generationUsage";
 
 // Image generation via Muapi.ai's "Nano Banana" (Google) model. Split into
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     // Some models can respond synchronously with no request_id.
     if (!requestId) {
-      const url = muapiOutputUrl(submitted as any);
+      const url = toDownloadUrl(muapiOutputUrl(submitted as any));
       return new Response(JSON.stringify({ done: true, url }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

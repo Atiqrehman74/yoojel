@@ -56,6 +56,7 @@ export default function Home() {
   const [modelMenu, setModelMenu] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
   const [imageMode, setImageMode] = useState(false);
+  const [composerFocusSignal, setComposerFocusSignal] = useState(0);
   const [streaming, setStreaming] = useState(false);
   const [searchCount, setSearchCount] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -598,6 +599,7 @@ export default function Home() {
                   onToggleWebSearch={handleToggleWebSearch}
                   searchesLeft={searchesLeft}
                   voiceMode={voiceMode}
+                  focusSignal={composerFocusSignal}
                 />
               </div>
               <div className="mt-2 flex flex-wrap justify-center gap-2 md:gap-3">
@@ -616,6 +618,7 @@ export default function Home() {
                   onClick={() => {
                     setImageMode(false);
                     setWebSearch(false);
+                    setComposerFocusSignal((n) => n + 1);
                   }}
                 />
                 <QuickAction

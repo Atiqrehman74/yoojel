@@ -21,6 +21,10 @@ interface Props {
   // active (two separate <Composer> render sites share one voice-mode
   // instance this way).
   voiceMode: ReturnType<typeof useVoiceMode>;
+  // Bumped by the parent (e.g. the "Write or edit" quick action) to focus
+  // the textarea imperatively -- a plain boolean wouldn't re-trigger the
+  // effect on repeated clicks since the value wouldn't change.
+  focusSignal?: number;
 }
 
 export default function Composer({
@@ -31,6 +35,7 @@ export default function Composer({
   onToggleWebSearch,
   searchesLeft,
   voiceMode,
+  focusSignal,
 }: Props) {
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -51,6 +56,11 @@ export default function Composer({
     const savedLang = window.localStorage.getItem("yoojel_voice_lang");
     if (savedLang) setVoiceLang(savedLang);
   }, []);
+
+  useEffect(() => {
+    if (focusSignal) taRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSignal]);
 
   useEffect(() => {
     return () => {

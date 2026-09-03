@@ -4,7 +4,7 @@ import MoviemakerClient from "./MoviemakerClient";
 export const metadata: Metadata = {
   title: "Yoojel MovieMaker — AI Movie Creation Platform",
   description:
-    "Yoojel MovieMaker is a next-generation AI-powered movie creation platform that transforms an idea, script, or vision into a cinematic production — storytelling, character development, 3D environments, animation, visual effects, sound, and post-production, up to a 240-minute feature film.",
+    "Yoojel MovieMaker is a next-generation AI-powered movie creation platform — from a script or idea to a full cinematic production, up to 240 minutes.",
   alternates: { canonical: "/apps/moviemaker" },
   openGraph: {
     title: "Yoojel MovieMaker — AI Movie Creation Platform",

@@ -13,6 +13,8 @@ export interface BlogPost {
 }
 
 const INTRODUCING_YOOJEL = `
+![The Yoojel homepage](/blog/yoojel-homepage.png)
+
 Yoojel is an AI assistant for everyday tasks — writing, coding, research, image and video generation, and voice. You can start using it for free at [yoojel.com](https://www.yoojel.com), with a Pro plan available at $5/mo for higher usage limits and access to our more capable model tier.
 
 ## Built by IoBM
@@ -41,21 +43,31 @@ Yoojel's core chat handles most everyday requests on its own, but some tasks des
 
 ## Image Studio
 
+![Image Studio](/blog/image-studio.png)
+
 [Image Studio](https://www.yoojel.com/apps/image-studio) generates and edits images from a text description. Pick from Square, Portrait, or Landscape, or open the Custom size picker for additional ratios (3:4, 4:3, 3:2, 2:3, 5:4, 4:5, and 21:9). Attach a reference image and Image Studio switches to edit mode, applying your prompt to the image you provided instead of generating from scratch.
 
 ## Video Studio
+
+![Video Studio](/blog/video-studio.png)
 
 [Video Studio](https://www.yoojel.com/apps/video-studio) generates short videos, either from a text prompt or from a reference image (image-to-video). Videos run up to 10 seconds, in 16:9 or 9:16, with a choice of resolution.
 
 ## Voice Studio
 
+![Voice Studio](/blog/voice-studio.png)
+
 [Voice Studio](https://www.yoojel.com/apps/voice-studio) turns text into natural-sounding speech. You can also clone a voice from a short reference audio sample and reuse it for future generations — cloning requires your explicit confirmation that you have the right to use the voice you're uploading, since it's a meaningfully different thing from generating a generic voice.
 
 ## Yoojel Coder
 
+![Yoojel Coder](/blog/coder.png)
+
 [Yoojel Coder](https://www.yoojel.com/apps/coder) generates code from a description, with a live sandboxed preview for HTML output so you can see what you're building without leaving the page. Attach an existing code or text file for context, and export your result as a copy, a ZIP, Markdown, or PDF.
 
 ## Deep Research
+
+![Deep Research](/blog/deep-research.png)
 
 [Deep Research](https://www.yoojel.com/apps/deep-research) answers complex questions with real, clickable citations rather than a wall of unsourced text. You can attach an image or a text file for additional context. It's free to use — you only need to sign in if you want to save your research history.
 

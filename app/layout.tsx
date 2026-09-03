@@ -9,6 +9,7 @@ const quicksand = Quicksand({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.yoojel.com"),
   title: "Yoojel — AI Assistant",
   description:
     "Yoojel is an AI assistant for everyday tasks: writing, coding, research, and more. Powered by IoBM.",
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Yoojel — AI Assistant",
     description: "Yoojel is an AI assistant for everyday tasks: writing, coding, research, and more. Powered by IoBM.",
-    url: "https://yoojel.vercel.app",
+    url: "https://www.yoojel.com",
     siteName: "Yoojel",
     images: [{ url: "/yoojel-insignia.png", width: 512, height: 512, alt: "Yoojel" }],
     type: "website",
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#212121",
+  themeColor: "#0a0e1a",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

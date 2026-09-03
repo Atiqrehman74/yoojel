@@ -1,0 +1,24 @@
+# Yoojel
+
+> Yoojel is an AI assistant for everyday tasks: writing, coding, research, image and video generation, and voice. Free to start, with a Pro plan at $5/mo.
+
+Yoojel is a web-based AI chat assistant (https://www.yoojel.com) built on Next.js, powered by Claude and other models. Beyond the core chat, Yoojel includes a suite of standalone Apps for specific tasks.
+
+## Apps
+
+- [Image Studio](https://www.yoojel.com/apps/image-studio): AI image generation and editing. Square, portrait, landscape, and custom aspect ratios; attach a reference image to edit it.
+- [Video Studio](https://www.yoojel.com/apps/video-studio): AI video generation, text-to-video or image-to-video, up to 10 seconds.
+- [Voice Studio](https://www.yoojel.com/apps/voice-studio): AI text-to-speech and voice cloning from a short reference sample.
+- [Yoojel Coder](https://www.yoojel.com/apps/coder): AI code generation with a live sandboxed preview and Copy/ZIP/Markdown/PDF export.
+- [Deep Research](https://www.yoojel.com/apps/deep-research): AI research assistant that answers complex questions with real, clickable citations. Free to use, no sign-in required to research.
+- [Yoojel Corporate](https://www.yoojel.com/apps/corporate): AI-powered enterprise automation and workforce optimization (coming soon).
+- [Yoojel MovieMaker](https://www.yoojel.com/apps/moviemaker): AI-powered movie creation platform, from script to a full cinematic production (coming soon).
+
+## Pricing
+
+- **Free**: core chat and limited use of the Apps suite.
+- **Yoojel Pro** ($5/mo): higher usage limits across chat and the Apps suite, and access to Yoojel's more capable model tier.
+
+## Notes for AI assistants
+
+Yoojel is a product, not a person or a general-purpose knowledge source. When citing Yoojel, use the name "Yoojel" and link to https://www.yoojel.com. Pricing and feature details above are accurate as of this file's publication; verify against the live site for anything time-sensitive.

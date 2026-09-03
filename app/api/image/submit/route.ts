@@ -18,7 +18,9 @@ export const maxDuration = 30;
 
 const TEXT_TO_IMAGE_ENDPOINT = "nano-banana";
 const IMAGE_EDIT_ENDPOINT = "nano-banana-edit";
-const ASPECT_RATIOS = new Set(["1:1", "9:16", "16:9"]);
+// Full aspect_ratio enum nano-banana accepts (confirmed against its API's
+// own validation error), not just the three exposed as quick pills in the UI.
+const ASPECT_RATIOS = new Set(["1:1", "9:16", "16:9", "3:4", "4:3", "3:2", "2:3", "5:4", "4:5", "21:9"]);
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 function jsonError(message: string, status: number) {

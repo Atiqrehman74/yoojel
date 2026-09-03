@@ -2,15 +2,28 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, ImageIcon, Loader2, Paperclip, X, LibraryBig } from "lucide-react";
+import { ArrowLeft, ChevronDown, Download, ImageIcon, Loader2, Paperclip, X, LibraryBig } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
-type SizeOption = { label: string; value: "1:1" | "9:16" | "16:9" };
+// nano-banana's full supported aspect_ratio enum (confirmed against Muapi's
+// API validation error) -- Square/Portrait/Landscape below are the three
+// most common, everything else lives behind "Custom".
+type AspectRatio = "1:1" | "9:16" | "16:9" | "3:4" | "4:3" | "3:2" | "2:3" | "5:4" | "4:5" | "21:9";
 
-const SIZES: SizeOption[] = [
+const SIZES: { label: string; value: AspectRatio }[] = [
   { label: "Square", value: "1:1" },
   { label: "Portrait", value: "9:16" },
   { label: "Landscape", value: "16:9" },
+];
+
+const CUSTOM_SIZES: { label: string; value: AspectRatio }[] = [
+  { label: "3:4", value: "3:4" },
+  { label: "4:3", value: "4:3" },
+  { label: "3:2", value: "3:2" },
+  { label: "2:3", value: "2:3" },
+  { label: "5:4", value: "5:4" },
+  { label: "4:5", value: "4:5" },
+  { label: "21:9", value: "21:9" },
 ];
 
 type Generation = {
@@ -24,7 +37,8 @@ const MAX_POLL_ATTEMPTS = 90; // ~3 minutes
 
 export default function ImageStudioPage() {
   const [prompt, setPrompt] = useState("");
-  const [aspectRatio, setAspectRatio] = useState<SizeOption["value"]>("1:1");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
+  const [customSizeOpen, setCustomSizeOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [generations, setGenerations] = useState<Generation[]>([]);
@@ -226,7 +240,7 @@ export default function ImageStudioPage() {
                 >
                   <Paperclip size={15} />
                 </button>
-                <div className="flex gap-1 rounded-lg border border-white/10 p-1">
+                <div className="flex items-center gap-1 rounded-lg border border-white/10 p-1">
                   {SIZES.map((s) => (
                     <button
                       key={s.value}
@@ -238,6 +252,42 @@ export default function ImageStudioPage() {
                       {s.label}
                     </button>
                   ))}
+                  <div className="relative">
+                    <button
+                      onClick={() => setCustomSizeOpen((v) => !v)}
+                      className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs ${
+                        CUSTOM_SIZES.some((c) => c.value === aspectRatio)
+                          ? "bg-white/15 text-white"
+                          : "text-gray-400 hover:text-gray-200"
+                      }`}
+                    >
+                      {CUSTOM_SIZES.find((c) => c.value === aspectRatio)?.label ?? "Custom"}
+                      <ChevronDown size={12} />
+                    </button>
+                    {customSizeOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setCustomSizeOpen(false)} />
+                        <div className="absolute bottom-full left-0 z-20 mb-1.5 grid w-40 grid-cols-2 gap-1 rounded-xl border border-white/10 bg-[#212a4a] p-1.5 shadow-2xl">
+                          {CUSTOM_SIZES.map((c) => (
+                            <button
+                              key={c.value}
+                              onClick={() => {
+                                setAspectRatio(c.value);
+                                setCustomSizeOpen(false);
+                              }}
+                              className={`rounded-lg px-2 py-1.5 text-xs ${
+                                aspectRatio === c.value
+                                  ? "bg-white/15 text-white"
+                                  : "text-gray-300 hover:bg-white/5"
+                              }`}
+                            >
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               <button

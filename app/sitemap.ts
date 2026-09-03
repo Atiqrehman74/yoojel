@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getAllPosts } from "@/lib/blog";
 
 const BASE_URL = "https://www.yoojel.com";
 
@@ -14,14 +15,22 @@ const ROUTES = [
   { path: "/apps/voice-studio", changeFrequency: "weekly" as const, priority: 0.7 },
   { path: "/apps/coder", changeFrequency: "weekly" as const, priority: 0.7 },
   { path: "/apps/deep-research", changeFrequency: "weekly" as const, priority: 0.7 },
+  { path: "/blog", changeFrequency: "weekly" as const, priority: 0.6 },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
-  return ROUTES.map((route) => ({
+  const staticEntries = ROUTES.map((route) => ({
     url: `${BASE_URL}${route.path}`,
     lastModified,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
+  const postEntries = getAllPosts().map((post) => ({
+    url: `${BASE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.date),
+    changeFrequency: "monthly" as const,
+    priority: 0.5,
+  }));
+  return [...staticEntries, ...postEntries];
 }

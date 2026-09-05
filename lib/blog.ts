@@ -9,12 +9,15 @@ export interface BlogPost {
   description: string;
   date: string; // YYYY-MM-DD
   author: string;
+  // Optional -- falls back to a colored initials avatar when unset (e.g.
+  // before an author photo has been provided).
+  authorImage?: string;
+  coverImage: string;
+  coverAlt: string;
   content: string; // markdown
 }
 
 const INTRODUCING_YOOJEL = `
-![The Yoojel homepage](/blog/yoojel-homepage.png)
-
 Yoojel is an AI assistant for everyday tasks — writing, coding, research, image and video generation, and voice. You can start using it for free at [yoojel.com](https://www.yoojel.com), with a Pro plan available at $5/mo for higher usage limits and access to our more capable model tier.
 
 ## Built by IoBM
@@ -42,8 +45,6 @@ const YOOJEL_APPS_SUITE = `
 Yoojel's core chat handles most everyday requests on its own, but some tasks deserve a dedicated tool. That's what the Apps suite is for — five standalone apps, each focused on one kind of work, all reachable from the header or [/apps](https://www.yoojel.com/apps).
 
 ## Image Studio
-
-![Image Studio](/blog/image-studio.png)
 
 [Image Studio](https://www.yoojel.com/apps/image-studio) generates and edits images from a text description. Pick from Square, Portrait, or Landscape, or open the Custom size picker for additional ratios (3:4, 4:3, 3:2, 2:3, 5:4, 4:5, and 21:9). Attach a reference image and Image Studio switches to edit mode, applying your prompt to the image you provided instead of generating from scratch.
 
@@ -86,6 +87,9 @@ export const BLOG_POSTS: BlogPost[] = [
       "Yoojel is an AI assistant for everyday tasks, built by IoBM. Here's what it is today, and why we're writing this blog.",
     date: "2026-09-03",
     author: "Muhammad Umair Saeed",
+    authorImage: "/blog/umair-saeed.jpg",
+    coverImage: "/blog/yoojel-homepage.png",
+    coverAlt: "The Yoojel homepage",
     content: INTRODUCING_YOOJEL,
   },
   {
@@ -95,6 +99,9 @@ export const BLOG_POSTS: BlogPost[] = [
       "A walkthrough of Image Studio, Video Studio, Voice Studio, Yoojel Coder, and Deep Research — five focused tools built on top of Yoojel's core chat.",
     date: "2026-09-03",
     author: "Muhammad Umair Saeed",
+    authorImage: "/blog/umair-saeed.jpg",
+    coverImage: "/blog/image-studio.png",
+    coverAlt: "The Yoojel Apps suite",
     content: YOOJEL_APPS_SUITE,
   },
 ];

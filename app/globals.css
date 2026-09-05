@@ -76,6 +76,18 @@ body {
 .markdown h1 { font-size: 1.5rem; }
 .markdown h2 { font-size: 1.3rem; }
 .markdown h3 { font-size: 1.1rem; }
+
+/* Blog post body -- a bit more editorial than chat replies, scoped so it
+   doesn't touch the shared .markdown rules used everywhere else. */
+.blog-content .markdown h2,
+.blog-content .markdown h3 {
+  color: #9db4ff;
+  border-left: 3px solid #4f6bff;
+  padding-left: 0.7rem;
+}
+.blog-content .markdown img {
+  box-shadow: 0 8px 30px rgba(79, 107, 255, 0.15);
+}
 .markdown ul,
 .markdown ol {
   margin: 0 0 1rem;

@@ -68,7 +68,36 @@ export default function BlogIndexPage() {
           </Link>
         )}
 
-        {rest.length > 0 && (
+        {/* A lone remaining post gets a full-width horizontal card instead of
+            sitting alone in a 2-column grid (which left it stuck at half
+            width, uneven against the featured card above it). */}
+        {rest.length === 1 && (
+          <Link
+            href={`/blog/${rest[0].slug}`}
+            className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-bubble transition-colors hover:border-white/25 sm:flex-row"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={rest[0].coverImage}
+              alt={rest[0].coverAlt}
+              className="h-40 w-full object-cover sm:h-auto sm:w-72 sm:flex-shrink-0"
+            />
+            <div className="flex flex-col justify-center p-6">
+              <h3 className="mb-1.5 text-xl font-bold text-gray-100 group-hover:text-white">{rest[0].title}</h3>
+              <p className="mb-3 text-sm text-gray-400">{rest[0].description}</p>
+              <div className="flex items-center gap-2">
+                <BlogAvatar src={rest[0].authorImage} name={rest[0].author} size={24} />
+                <span className="text-xs text-gray-500">
+                  {rest[0].author}
+                  {" — "}
+                  {new Date(rest[0].date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                </span>
+              </div>
+            </div>
+          </Link>
+        )}
+
+        {rest.length > 1 && (
           <div className="grid gap-6 sm:grid-cols-2">
             {rest.map((post) => (
               <Link

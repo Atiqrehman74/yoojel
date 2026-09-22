@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient, supabaseConfigured } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Tab = "signin" | "register" | "forgot";
 
@@ -212,7 +213,7 @@ export default function AuthPage() {
         <p className="mt-4 text-center text-xs text-gray-500">
           By continuing you agree to our{" "}
           <a href="#" className="text-gray-400 hover:text-white">Terms</a> and{" "}
-          <a href="#" className="text-gray-400 hover:text-white">Privacy Policy</a>
+          <Link href="/privacy-policy" className="text-gray-400 hover:text-white">Privacy Policy</Link>
         </p>
       </div>
     </div>

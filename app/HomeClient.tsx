@@ -658,7 +658,7 @@ export default function Home() {
         )}
 
         {/* Footer */}
-        <div className="shrink-0 pb-safe py-2 text-center text-[11px] text-gray-600 select-none">
+        <div className="relative shrink-0 pb-safe px-20 py-2 text-center text-[11px] text-gray-600 select-none">
           Powered by 2026 —{" "}
           <a
             href="https://www.io-bm.com/"
@@ -668,6 +668,21 @@ export default function Home() {
           >
             IoBM
           </a>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 sm:right-4">
+            <Link
+              href="/support"
+              className="text-gray-500 transition-colors hover:text-gray-200 hover:underline"
+            >
+              Support
+            </Link>
+            {" · "}
+            <Link
+              href="/privacy-policy"
+              className="text-gray-500 transition-colors hover:text-gray-200 hover:underline"
+            >
+              Privacy
+            </Link>
+          </span>
         </div>
       </main>
     </div>

@@ -6,9 +6,8 @@ export interface ModelOption {
   id: string;
   label: string;
   description: string;
-  // "anthropic" (default) talks to Claude directly. "routesme" routes
-  // through the third-party OpenAI-compatible gateway at routesme.online —
-  // no web search / vision support, kept isolated from the Claude path.
+  // "anthropic" (default) talks to Claude directly. "routesme" uses the
+  // existing OpenAI-compatible gateway and does not support web search.
   provider?: "anthropic" | "routesme";
 }
 

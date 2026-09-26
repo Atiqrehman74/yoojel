@@ -4,7 +4,7 @@ import { ArrowLeft, Mail, ExternalLink } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Support — Yoojel",
-  description: "Get help with Yoojel from the IoBM Trading LLC support team.",
+  description: "Get help with Yoojel from the IoBM support team.",
   alternates: { canonical: "/support" },
 };
 
@@ -35,7 +35,7 @@ export default function SupportPage() {
           <a href="https://www.io-bm.com/contact" target="_blank" rel="noopener noreferrer" className="group rounded-2xl border border-white/10 bg-bubble p-6 transition hover:border-brand/50 hover:bg-hover">
             <ExternalLink size={22} className="mb-5 text-brand" />
             <h3 className="text-lg font-semibold text-white">Contact IoBM</h3>
-            <p className="mt-2 text-sm leading-6 text-gray-400">Reach IoBM Trading LLC through the company website.</p>
+            <p className="mt-2 text-sm leading-6 text-gray-400">Reach IoBM through the company website.</p>
             <p className="mt-5 text-sm font-semibold text-brand group-hover:underline">io-bm.com/contact</p>
           </a>
         </div>
@@ -77,18 +77,8 @@ export default function SupportPage() {
 
         <section className="mt-10 border-t border-white/10 pt-8 text-sm leading-7 text-gray-300">
           <h3 className="mb-3 text-lg font-semibold text-white">Company details</h3>
-          <p className="text-gray-400">Yoojel is operated by IoBM Trading LLC.</p>
+          <p className="text-gray-400">Yoojel is operated by IoBM.</p>
           <dl className="mt-5 grid gap-5 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-500">Address</dt>
-              <dd className="mt-2">
-                Office Level 30, H Hotel
-                <br />
-                Sheikh Zayed Road
-                <br />
-                Dubai, United Arab Emirates
-              </dd>
-            </div>
             <div>
               <dt className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-500">Phone</dt>
               <dd className="mt-2">

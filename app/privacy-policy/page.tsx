@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — Yoojel",
-  description: "Privacy Policy for Yoojel, an AI assistant by IoBM Trading LLC.",
+  description: "Privacy Policy for Yoojel, an AI assistant by IoBM.",
   alternates: { canonical: "/privacy-policy" },
 };
 
@@ -29,9 +29,9 @@ export default function PrivacyPolicyPage() {
           <section>
             <h3 className="mb-2 text-lg font-semibold text-white">1. About this policy</h3>
             <p>
-              Yoojel is an AI assistant operated by IoBM Trading LLC ("IoBM", "we", "us", or "our").
-              IoBM is a technology company based in Dubai, UAE. This policy explains what information we
-              collect, how we use it, and the choices available to you when you use Yoojel.
+              Yoojel is an AI assistant operated by IoBM (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;).
+              This policy explains what information we collect, how we use it, and the choices available to you
+              when you use Yoojel.
             </p>
           </section>
 
@@ -109,11 +109,7 @@ export default function PrivacyPolicyPage() {
           <section className="border-t border-white/10 pt-8">
             <h3 className="mb-2 text-lg font-semibold text-white">Contact</h3>
             <p>
-              IoBM Trading LLC
-              <br />
-              Office Level 30, H Hotel, Sheikh Zayed Road
-              <br />
-              Dubai, United Arab Emirates
+              IoBM
               <br />
               <a className="text-brand hover:underline" href="mailto:info@yoojel.com">info@yoojel.com</a>
             </p>

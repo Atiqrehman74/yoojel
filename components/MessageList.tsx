@@ -1,13 +1,64 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Markdown from "./Markdown";
-import { Globe, ExternalLink } from "lucide-react";
+import { Globe, ExternalLink, Copy, Check, FileDown } from "lucide-react";
 import type { ChatMessage } from "@/lib/types";
+import { downloadChatPdf } from "@/lib/chatPdf";
 
 interface Props {
   messages: ChatMessage[];
   streaming: boolean;
+}
+
+// Saving a reply is a common ask ("can I get that as a PDF?"), so it's a
+// one-tap action on the message itself rather than something to hunt for.
+// Available on every plan.
+function MessageActions({ message, question }: { message: ChatMessage; question?: string }) {
+  const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+    } catch {
+      return;
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
+
+  const savePdf = async () => {
+    setSaving(true);
+    try {
+      // The question that prompted the reply goes in too -- a page of answer
+      // with no context is far less useful once it's out of the app.
+      const entries = question
+        ? ([{ role: "user" as const, content: question }, { role: "assistant" as const, content: message.content, sources: message.sources }])
+        : ([{ role: "assistant" as const, content: message.content, sources: message.sources }]);
+      await downloadChatPdf(entries, {
+        filename: question ? `yoojel-${question.slice(0, 40)}` : "yoojel-answer",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cls =
+    "flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-gray-500 transition-colors hover:bg-hover hover:text-gray-200 disabled:opacity-50";
+
+  return (
+    <div className="mt-2 flex items-center gap-1">
+      <button onClick={copy} className={cls} title="Copy this reply">
+        {copied ? <Check size={13} /> : <Copy size={13} />}
+        {copied ? "Copied" : "Copy"}
+      </button>
+      <button onClick={savePdf} disabled={saving} className={cls} title="Download this reply as a PDF">
+        <FileDown size={13} />
+        {saving ? "Saving…" : "PDF"}
+      </button>
+    </div>
+  );
 }
 
 function getDomain(url: string): string {
@@ -142,6 +193,14 @@ export default function MessageList({ messages, streaming }: Props) {
                         })}
                       </div>
                     </div>
+                  )}
+
+                  {/* Actions appear once the reply has finished streaming. */}
+                  {m.content && !showCursor && (
+                    <MessageActions
+                      message={m}
+                      question={idx > 0 && messages[idx - 1].role === "user" ? messages[idx - 1].content : undefined}
+                    />
                   )}
                 </div>
               </div>

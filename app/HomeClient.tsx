@@ -17,6 +17,7 @@ import {
   Search,
   Building2,
   Clapperboard,
+  FileDown,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import MessageList from "@/components/MessageList";
@@ -25,6 +26,7 @@ import { MODELS, DEFAULT_MODEL, PRO_DEFAULT_MODEL } from "@/lib/models";
 import { createClient } from "@/lib/supabase";
 import { useVoiceMode } from "@/hooks/useVoiceMode";
 import { GENERIC_CHAT_ERROR } from "@/lib/errors";
+import { downloadChatPdf } from "@/lib/chatPdf";
 import type {
   Attachment,
   ChatMessage,
@@ -558,6 +560,27 @@ export default function Home() {
               );
             })}
           </div>
+          {messages.length > 0 && (
+            <button
+              onClick={() =>
+                downloadChatPdf(
+                  messages
+                    .filter((m) => (m.role === "user" || m.role === "assistant") && m.content)
+                    .map((m) => ({
+                      role: m.role as "user" | "assistant",
+                      content: m.content,
+                      sources: m.sources,
+                    })),
+                  { filename: "yoojel-conversation", heading: "Yoojel conversation" }
+                )
+              }
+              title="Save this whole conversation as a PDF"
+              className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:bg-hover hover:text-white"
+            >
+              <FileDown size={14} />
+              <span className="hidden sm:inline">Save PDF</span>
+            </button>
+          )}
           {headerProfile ? (
             <div className="hidden flex-shrink-0 items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 sm:flex">
               <span className="text-sm text-gray-200 max-w-[120px] truncate">

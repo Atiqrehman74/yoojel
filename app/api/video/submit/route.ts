@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
 import { muapiSubmit, muapiUploadFile } from "@/lib/muapi";
 import { checkAndIncrementUsage, VIDEO_MONTHLY_LIMIT } from "@/lib/generationUsage";
+import { openGenerationJob, attachRequestId, abandonGenerationJob } from "@/lib/pendingGenerations";
 
 // Video generation via Muapi.ai's Wan 2.1 (Alibaba) models. Unlike image
 // generation, this can take minutes -- longer than a serverless function
@@ -87,11 +88,22 @@ export async function POST(req: NextRequest) {
       payload.image_url = imageUrl;
     }
 
-    const submitted = await muapiSubmit(endpoint, payload, key);
+    // Opened before submitting so Muapi has somewhere to call back to -- a
+    // video takes minutes, and the user has usually left the app by then.
+    const job = await openGenerationJob({
+      userId: auth.userId,
+      userEmail: auth.email,
+      kind: "video",
+    });
+
+    const submitted = await muapiSubmit(endpoint, payload, key, job.webhookUrl);
     const requestId = submitted.request_id || submitted.id;
     if (!requestId) {
+      await abandonGenerationJob(job.jobId);
       return jsonError("Video provider returned no request id.", 502);
     }
+    await attachRequestId(job.jobId, requestId);
+
     return new Response(JSON.stringify({ requestId }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

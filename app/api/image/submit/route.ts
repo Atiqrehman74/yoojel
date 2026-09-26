@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
 import { muapiSubmit, muapiOutputUrl, muapiUploadFile, toDownloadUrl } from "@/lib/muapi";
 import { checkAndIncrementUsage, IMAGE_MONTHLY_LIMIT } from "@/lib/generationUsage";
+import { openGenerationJob, attachRequestId, abandonGenerationJob } from "@/lib/pendingGenerations";
 
 // Image generation via Muapi.ai's "Nano Banana" (Google) model. Split into
 // submit/result (like video) instead of polling inline: real-world latency
@@ -77,17 +78,26 @@ export async function POST(req: NextRequest) {
       payload = { prompt, images_list: [imageUrl], aspect_ratio: ratio };
     }
 
-    const submitted = await muapiSubmit(endpoint, payload, key);
+    const job = await openGenerationJob({
+      userId: auth.userId,
+      userEmail: auth.email,
+      kind: "image",
+    });
+
+    const submitted = await muapiSubmit(endpoint, payload, key, job.webhookUrl);
     const requestId = submitted.request_id || submitted.id;
 
-    // Some models can respond synchronously with no request_id.
+    // Some models can respond synchronously with no request_id. The result is
+    // already on screen, so there is nothing to notify about.
     if (!requestId) {
+      await abandonGenerationJob(job.jobId);
       const url = toDownloadUrl(muapiOutputUrl(submitted as any));
       return new Response(JSON.stringify({ done: true, url }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
+    await attachRequestId(job.jobId, requestId);
 
     return new Response(JSON.stringify({ requestId }), {
       status: 200,

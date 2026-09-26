@@ -20,12 +20,18 @@ export type MuapiPollResult = {
   output?: { url?: string };
 };
 
+// `webhookUrl` is passed as a query parameter (Muapi's own convention, not a
+// body field); Muapi POSTs the finished job to it, which is how a generation
+// can notify someone who has closed the app. Omit it for jobs nobody waits on.
 export async function muapiSubmit(
   endpoint: string,
   payload: Record<string, unknown>,
-  key: string
+  key: string,
+  webhookUrl?: string | null
 ): Promise<MuapiSubmitResult> {
-  const res = await fetch(`${MUAPI_BASE}/${endpoint}`, {
+  const url = new URL(`${MUAPI_BASE}/${endpoint}`);
+  if (webhookUrl) url.searchParams.set("webhook", webhookUrl);
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": key },
     body: JSON.stringify(payload),

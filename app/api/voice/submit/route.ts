@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { requireProUser } from "@/lib/requireProUser";
 import { muapiSubmit } from "@/lib/muapi";
 import { checkAndIncrementUsage, VOICE_MONTHLY_LIMIT } from "@/lib/generationUsage";
+import { openGenerationJob, attachRequestId, abandonGenerationJob } from "@/lib/pendingGenerations";
 
 // Text-to-speech via Muapi.ai's Minimax Speech 2.6 HD model. Same
 // submit/result split as video: TTS on a long passage can take a while,
@@ -96,11 +97,19 @@ export async function POST(req: NextRequest) {
   };
 
   try {
-    const submitted = await muapiSubmit(MODEL_ENDPOINT, payload, key);
+    const job = await openGenerationJob({
+      userId: auth.userId,
+      userEmail: auth.email,
+      kind: "voice",
+    });
+
+    const submitted = await muapiSubmit(MODEL_ENDPOINT, payload, key, job.webhookUrl);
     const requestId = submitted.request_id || submitted.id;
     if (!requestId) {
+      await abandonGenerationJob(job.jobId);
       return jsonError("Voice provider returned no request id.", 502);
     }
+    await attachRequestId(job.jobId, requestId);
     return new Response(JSON.stringify({ requestId }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

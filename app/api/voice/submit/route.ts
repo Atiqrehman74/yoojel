@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
       userId: auth.userId,
       userEmail: auth.email,
       kind: "voice",
+      prompt,
     });
 
     const submitted = await muapiSubmit(MODEL_ENDPOINT, payload, key, job.webhookUrl);

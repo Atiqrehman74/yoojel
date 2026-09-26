@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
       userId: auth.userId,
       userEmail: auth.email,
       kind: "image",
+      prompt,
     });
 
     const submitted = await muapiSubmit(endpoint, payload, key, job.webhookUrl);

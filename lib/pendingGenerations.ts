@@ -52,20 +52,32 @@ export async function openGenerationJob(params: {
   userId: string;
   userEmail?: string | null;
   kind: GenerationKind;
+  prompt?: string | null;
 }): Promise<OpenedJob> {
   const jobId = randomUUID();
   const token = sign(jobId);
   const db = admin();
   if (!db || !token) return { jobId, webhookUrl: null };
 
+  const row: Record<string, unknown> = {
+    id: jobId,
+    user_id: params.userId,
+    user_email: params.userEmail ?? null,
+    kind: params.kind,
+  };
+
   try {
-    const { error } = await db.from("pending_generations").insert({
-      id: jobId,
-      user_id: params.userId,
-      user_email: params.userEmail ?? null,
-      kind: params.kind,
-    });
-    if (error) return { jobId, webhookUrl: null };
+    const withPrompt = await db
+      .from("pending_generations")
+      .insert({ ...row, prompt: params.prompt ? params.prompt.slice(0, 2000) : null });
+    if (withPrompt.error) {
+      // The prompt column arrived in a later migration. If it isn't there yet,
+      // fall back to a row without it rather than losing the whole job: no
+      // row means no callback URL, which would silently disable notifications
+      // and Library persistence entirely.
+      const withoutPrompt = await db.from("pending_generations").insert(row);
+      if (withoutPrompt.error) return { jobId, webhookUrl: null };
+    }
   } catch {
     return { jobId, webhookUrl: null };
   }
@@ -96,6 +108,49 @@ export async function abandonGenerationJob(jobId: string): Promise<void> {
   }
 }
 
+// The provider's request id for a job, so the webhook can ask Muapi what
+// actually happened rather than trusting the callback body's shape.
+export async function getJobRequestId(jobId: string): Promise<string | null> {
+  const db = admin();
+  if (!db) return null;
+  try {
+    const { data } = await db
+      .from("pending_generations")
+      .select("request_id")
+      .eq("id", jobId)
+      .maybeSingle();
+    return data?.request_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Saves a finished image or video into the Library on the user's behalf.
+// Normally the browser does this when its polling sees the job complete, but
+// a user who closed the app never gets that far -- and they were charged a
+// monthly generation regardless, so the result must not be lost.
+export async function saveToLibrary(params: {
+  userId: string;
+  kind: GenerationKind;
+  prompt: string | null;
+  url: string;
+}): Promise<void> {
+  // The Library only holds images and videos; voice has its own storage.
+  if (params.kind !== "image" && params.kind !== "video") return;
+  const db = admin();
+  if (!db) return;
+  try {
+    await db.from("generations").insert({
+      user_id: params.userId,
+      kind: params.kind,
+      prompt: params.prompt || "(generated while the app was closed)",
+      url: params.url,
+    });
+  } catch {
+    // Ignore -- the notification still goes out.
+  }
+}
+
 // Called when the user's own browser polls a job to completion. Claims the
 // row so the webhook, arriving at roughly the same moment, doesn't also push
 // a notification for something already on screen.
@@ -117,6 +172,7 @@ export type ClaimedGeneration = {
   userEmail: string | null;
   userId: string | null;
   kind: GenerationKind;
+  prompt: string | null;
 };
 
 // Atomically takes ownership of a job for notification. Returns null when the
@@ -128,19 +184,32 @@ export async function claimForNotification(
 ): Promise<ClaimedGeneration | null> {
   const db = admin();
   if (!db) return null;
-  try {
-    const { data } = await db
+
+  // Selecting a column the table doesn't have makes PostgREST reject the
+  // whole request, so the update never applies and the failure is
+  // indistinguishable from "someone else already claimed this". The prompt
+  // column arrived in a later migration, so try with it and fall back.
+  const claim = (columns: string) =>
+    db
       .from("pending_generations")
       .update({ status: outcome, resolved_at: new Date().toISOString() })
       .eq("id", jobId)
       .eq("status", "pending")
-      .select("user_email, user_id, kind")
+      .select(columns)
       .maybeSingle();
+
+  try {
+    let { data, error } = await claim("user_email, user_id, kind, prompt");
+    if (error) {
+      ({ data } = await claim("user_email, user_id, kind"));
+    }
     if (!data) return null;
+    const row = data as unknown as Record<string, unknown>;
     return {
-      userEmail: data.user_email ?? null,
-      userId: data.user_id ?? null,
-      kind: data.kind as GenerationKind,
+      userEmail: (row.user_email as string) ?? null,
+      userId: (row.user_id as string) ?? null,
+      kind: row.kind as GenerationKind,
+      prompt: (row.prompt as string) ?? null,
     };
   } catch {
     return null;

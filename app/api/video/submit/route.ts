@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
       userId: auth.userId,
       userEmail: auth.email,
       kind: "video",
+      prompt,
     });
 
     const submitted = await muapiSubmit(endpoint, payload, key, job.webhookUrl);

@@ -21,13 +21,21 @@ export type AppilixPush = {
 
 export type AppilixPushResult = { ok: true } | { ok: false; error: string };
 
+// Trimmed because a key pasted or piped into a dashboard or CLI very easily
+// picks up a trailing newline, and Appilix rejects the result as an invalid
+// key -- which looks identical to having the wrong key entirely.
+function envKey(name: string): string | undefined {
+  const raw = process.env[name];
+  return raw ? raw.trim() : undefined;
+}
+
 export function pushConfigured(): boolean {
-  return !!process.env.APPILIX_APP_KEY && !!process.env.APPILIX_API_KEY;
+  return !!envKey("APPILIX_APP_KEY") && !!envKey("APPILIX_API_KEY");
 }
 
 export async function sendAppilixPush(push: AppilixPush): Promise<AppilixPushResult> {
-  const appKey = process.env.APPILIX_APP_KEY;
-  const apiKey = process.env.APPILIX_API_KEY;
+  const appKey = envKey("APPILIX_APP_KEY");
+  const apiKey = envKey("APPILIX_API_KEY");
   if (!appKey || !apiKey) {
     return { ok: false, error: "Push notifications aren't configured yet." };
   }
@@ -62,6 +70,25 @@ export async function sendAppilixPush(push: AppilixPush): Promise<AppilixPushRes
     if (!res.ok) {
       return { ok: false, error: text || `Push failed (${res.status}).` };
     }
+
+    // Appilix reports rejected credentials and unknown recipients as HTTP 200
+    // with {"status": false}, so the status code alone says nothing about
+    // whether the notification actually went anywhere.
+    try {
+      const data = JSON.parse(text);
+      if (data && data.status === false) {
+        return { ok: false, error: data.message || "Appilix rejected the notification." };
+      }
+      // "...sent soon to 0 devices" means nobody matched the identity -- the
+      // commonest cause is a device that registered a push token without ever
+      // recording who is signed in.
+      if (typeof data?.message === "string" && /\b0 devices\b/.test(data.message)) {
+        return { ok: false, error: data.message };
+      }
+    } catch {
+      // Not JSON; a 2xx is the best signal available.
+    }
+
     return { ok: true };
   } catch (err: any) {
     return { ok: false, error: err?.message || "Push failed." };

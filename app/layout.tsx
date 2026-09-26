@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Quicksand } from "next/font/google";
 import "./globals.css";
+import AppilixBridge from "@/components/AppilixBridge";
 
 const quicksand = Quicksand({
   subsets: ["latin"],
@@ -48,7 +49,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={quicksand.variable}>
-      <body>{children}</body>
+      <body>
+        <AppilixBridge />
+        {children}
+      </body>
     </html>
   );
 }

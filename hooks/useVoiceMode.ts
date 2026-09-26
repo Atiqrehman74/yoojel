@@ -7,6 +7,11 @@ import type { Attachment, ChatMessage } from "@/lib/types";
 
 export type VoiceModePhase = "listening" | "thinking" | "speaking";
 
+// Result of opening a turn: either the ticket every sentence of this reply
+// presents to /api/voice/omnivoice, or the reason the turn can't be spoken
+// (not Pro, monthly limit reached, network).
+type TurnTicket = { ticket: string } | { error: string };
+
 const VOICE_MODE_MAX_CHARS = 1800;
 const DEFAULT_VOICE_LANG = "en-US";
 const MIN_CHUNK_CHARS = 8;
@@ -76,6 +81,10 @@ export function useVoiceMode({
   const processingQueueRef = useRef(false);
   const replyDoneRef = useRef(false);
 
+  // One ticket covers every sentence of one reply -- see lib/voiceTicket.ts.
+  const ticketRef = useRef<Promise<TurnTicket> | null>(null);
+  const turnFailedRef = useRef(false);
+
   useEffect(() => {
     activeRef.current = active;
   }, [active]);
@@ -88,6 +97,37 @@ export function useVoiceMode({
   };
 
   const currentLang = () => window.localStorage.getItem("yoojel_voice_lang") || DEFAULT_VOICE_LANG;
+
+  // Kicks the TTS GPU awake as soon as voice mode opens, so a cold container
+  // boots while the user is still speaking instead of stalling the first
+  // sentence of the reply. Deliberately not awaited -- nothing depends on it.
+  const warmUp = () => {
+    void (async () => {
+      try {
+        const headers = await authHeaders();
+        await fetch("/api/voice/warm", { method: "POST", headers });
+      } catch {
+        // Best effort only; the real synthesis call reports anything broken.
+      }
+    })();
+  };
+
+  // Spends one voice generation for the whole reply and returns the ticket
+  // its sentences will present. Started in parallel with the model's reply so
+  // it costs nothing on the clock.
+  const openTurn = async (): Promise<TurnTicket> => {
+    try {
+      const headers = await authHeaders();
+      const res = await fetch("/api/voice/turn", { method: "POST", headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ticket) {
+        return { error: data?.error || "Couldn't start the spoken reply." };
+      }
+      return { ticket: data.ticket };
+    } catch (e: any) {
+      return { error: e?.message || "Couldn't start the spoken reply." };
+    }
+  };
 
   const startTurn = async () => {
     if (!audioSupported()) {
@@ -148,11 +188,17 @@ export function useVoiceMode({
     spokenLengthRef.current = 0;
     chunkQueueRef.current = [];
     replyDoneRef.current = false;
+    turnFailedRef.current = false;
+    ticketRef.current = openTurn();
     onSend(spokenText, []);
   };
 
   // Synthesizes and plays exactly one queued chunk, then advances the queue.
   const processQueue = async () => {
+    // A turn that couldn't be opened (limit reached, not Pro) has nothing
+    // speakable left; drop the backlog and let the empty-queue path below
+    // hand control back to listening once the reply finishes streaming.
+    if (turnFailedRef.current) chunkQueueRef.current = [];
     if (processingQueueRef.current) return;
     if (chunkQueueRef.current.length === 0) {
       if (replyDoneRef.current && activeRef.current) startTurn();
@@ -168,7 +214,20 @@ export function useVoiceMode({
     }
 
     try {
-      const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
+      const pending = ticketRef.current ? await ticketRef.current : null;
+      if (!activeRef.current) return;
+      if (pending && "error" in pending) {
+        setError(pending.error);
+        turnFailedRef.current = true;
+        processingQueueRef.current = false;
+        processQueue();
+        return;
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(pending ? { "x-voice-ticket": pending.ticket } : await authHeaders()),
+      };
       const res = await fetch("/api/voice/omnivoice", {
         method: "POST",
         headers,
@@ -255,6 +314,7 @@ export function useVoiceMode({
     if (!audioSupported()) return;
     setActive(true);
     activeRef.current = true;
+    warmUp();
     startTurn();
   };
 
@@ -265,6 +325,8 @@ export function useVoiceMode({
     replyDoneRef.current = false;
     chunkQueueRef.current = [];
     processingQueueRef.current = false;
+    ticketRef.current = null;
+    turnFailedRef.current = false;
     activeRecordingRef.current?.cancel();
     activeRecordingRef.current = null;
     audioRef.current?.pause();
@@ -283,6 +345,8 @@ export function useVoiceMode({
     chunkQueueRef.current = [];
     processingQueueRef.current = false;
     waitingForReplyRef.current = false;
+    ticketRef.current = null;
+    turnFailedRef.current = false;
     audioRef.current?.pause();
     audioRef.current = null;
     if (activeRef.current) startTurn();

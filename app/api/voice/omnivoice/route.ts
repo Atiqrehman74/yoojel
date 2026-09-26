@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireProUser } from "@/lib/requireProUser";
 import { checkAndIncrementUsage, VOICE_MONTHLY_LIMIT } from "@/lib/generationUsage";
+import { verifyVoiceTicket } from "@/lib/voiceTicket";
 
 // Text-to-speech for voice mode via a self-hosted OmniVoice model on Modal
 // (see /omnivoice-server). Unlike /api/voice/submit (Muapi, used by Voice
@@ -21,18 +22,26 @@ function jsonError(message: string, status: number) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireProUser(req);
-  if (!auth.ok) {
-    return jsonError(auth.error, auth.status);
-  }
+  // Voice mode presents a ticket from /api/voice/turn, which already charged
+  // one voice generation for the whole reply. Verifying it is local, so the
+  // per-sentence calls that make up one spoken answer cost no round trips.
+  // Without a ticket, fall back to gating the call on its own.
+  const ticket = verifyVoiceTicket(req.headers.get("x-voice-ticket"));
 
-  if (!auth.isAdmin) {
-    const usage = await checkAndIncrementUsage(auth.userId, "voice", VOICE_MONTHLY_LIMIT);
-    if (!usage.ok) {
-      return jsonError(
-        `You've reached this month's limit of ${VOICE_MONTHLY_LIMIT} voice generations. It resets at the start of next month.`,
-        429
-      );
+  if (!ticket) {
+    const auth = await requireProUser(req);
+    if (!auth.ok) {
+      return jsonError(auth.error, auth.status);
+    }
+
+    if (!auth.isAdmin) {
+      const usage = await checkAndIncrementUsage(auth.userId, "voice", VOICE_MONTHLY_LIMIT);
+      if (!usage.ok) {
+        return jsonError(
+          `You've reached this month's limit of ${VOICE_MONTHLY_LIMIT} voice replies. It resets at the start of next month.`,
+          429
+        );
+      }
     }
   }
 

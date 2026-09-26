@@ -13,8 +13,16 @@ export const maxDuration = 45;
 
 const WHISPER_ENDPOINT = "openai-whisper";
 const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
-const POLL_MS = 1500;
-const MAX_POLL_ATTEMPTS = 20;
+
+// Whisper on a few seconds of speech usually finishes well inside a second,
+// so the loop polls immediately and only then backs off. A fixed interval
+// that slept *before* the first poll quantized every transcription to a
+// multiple of that interval no matter how fast the job really was, which is
+// dead time on the critical path of every voice-mode turn.
+const POLL_MIN_MS = 150;
+const POLL_MAX_MS = 1200;
+const POLL_GROWTH = 1.5;
+const POLL_DEADLINE_MS = 35_000;
 
 function jsonError(message: string, status: number) {
   return new Response(JSON.stringify({ error: message }), {
@@ -68,8 +76,12 @@ export async function POST(req: NextRequest) {
       return jsonError("Transcription provider returned no request id.", 502);
     }
 
-    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
-      await new Promise((r) => setTimeout(r, POLL_MS));
+    const deadline = Date.now() + POLL_DEADLINE_MS;
+    let delay = 0;
+    while (Date.now() < deadline) {
+      if (delay) await new Promise((r) => setTimeout(r, delay));
+      delay = delay ? Math.min(Math.round(delay * POLL_GROWTH), POLL_MAX_MS) : POLL_MIN_MS;
+
       const result = await muapiPoll(requestId, key);
       const status = result.status?.toLowerCase();
       if (status === "completed" || status === "succeeded" || status === "success") {
